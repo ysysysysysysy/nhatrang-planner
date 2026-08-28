@@ -543,7 +543,14 @@
     </div>
 
     <div class="subpanel" id="sub-saved">
-      <div class="section-title"><h2>저장한 장소</h2></div>
+      <div class="section-title"><h2>구글맵 저장 목록 바로가기</h2></div>
+      <p class="hint" style="margin:-6px 0 12px;">구글맵 앱에서 목록 → 공유 아이콘으로 얻은 링크를 붙여넣으면, 언제든 원본 목록을 한 번에 열 수 있어요</p>
+      <div class="quick-add" style="margin-top:0; margin-bottom:20px;">
+        <input type="url" class="text-input" id="googleMapsListUrl" placeholder="https://maps.app.goo.gl/...">
+        <a class="quick-add-btn" id="googleMapsListOpenBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">열기 ↗</a>
+      </div>
+
+      <div class="section-title" style="margin-top:0;"><h2>저장한 장소 가져오기</h2></div>
       <p class="hint" style="margin:-6px 0 12px;">구글 테이크아웃(takeout.google.com)에서 "Maps(내 장소)"를 내보낸 뒤 "저장한 장소.json" 파일을 여기에 올려보세요. 지도와 목록에 반영되고, 다시 올리면 통째로 교체돼요</p>
       <div class="saved-import-row">
         <input type="file" id="savedPlacesFile" accept=".json">
@@ -719,7 +726,8 @@ var firebaseConfig = {
         inFlight: "", inDate: "", inDep: "", inArr: "",
         hotelName: "", hotelIn: "", hotelOut: "", hotelConf: "", hotelPhone: "", hotelAddr: ""
       },
-      savedPlaces: []
+      savedPlaces: [],
+      googleMapsListUrl: ""
     };
   }
 
@@ -1616,6 +1624,23 @@ var firebaseConfig = {
     reader.readAsText(file);
   });
 
+  function renderGoogleMapsListUrl() {
+    var url = state.googleMapsListUrl || "";
+    document.getElementById("googleMapsListUrl").value = url;
+    document.getElementById("googleMapsListOpenBtn").href = url || "#";
+  }
+  document.getElementById("googleMapsListUrl").addEventListener("input", function (e) {
+    state.googleMapsListUrl = e.target.value;
+    save();
+    document.getElementById("googleMapsListOpenBtn").href = e.target.value || "#";
+  });
+  document.getElementById("googleMapsListOpenBtn").addEventListener("click", function (e) {
+    if (!state.googleMapsListUrl) {
+      e.preventDefault();
+      alert("먼저 구글맵 목록 링크를 입력해주세요.");
+    }
+  });
+
   /* ---------------- RESET ---------------- */
   document.getElementById("resetBtn").addEventListener("click", function () {
     if (confirm("모든 일정, 예산, 정보가 초기화됩니다. 계속할까요?")) {
@@ -1641,6 +1666,7 @@ var firebaseConfig = {
     renderPlaces();
     renderTips();
     renderSavedPlaces();
+    renderGoogleMapsListUrl();
     fxRate.value = state.fxRate;
     Object.keys(bookingFields).forEach(function (id) {
       document.getElementById(id).value = state.booking[bookingFields[id]] || "";
