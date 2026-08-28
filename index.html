@@ -393,9 +393,10 @@
   .saved-import-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
   .saved-import-row input[type="file"] { flex: 1; min-width: 180px; font-size: 0.82rem; }
   #savedPlacesMap { width: 100%; height: 320px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: 14px; background: var(--surface-sunk); }
-  .saved-place-item { padding: 10px 0; border-top: 1px solid var(--color-border); cursor: pointer; }
+  .saved-place-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--color-border); }
   .saved-place-item:first-child { border-top: none; }
   .saved-place-item:hover { background: var(--color-primary-extra-soft); }
+  .saved-place-body { flex: 1; cursor: pointer; min-width: 0; }
   .saved-place-name { font-weight: 700; font-size: 0.9rem; }
   .saved-place-memo { font-size: 0.78rem; color: var(--ink-faint); margin-top: 2px; }
   .saved-place-link { display: inline-block; font-size: 0.78rem; color: var(--ink-faint); text-decoration: underline; margin-top: 4px; }
@@ -547,6 +548,10 @@
       <div class="saved-import-row">
         <input type="file" id="savedPlacesFile" accept=".json">
       </div>
+      <div class="saved-import-row">
+        <input type="text" class="text-input" id="savedPlacesFilter" placeholder="이름/주소로 검색 (예: Nha Trang, 나트랑)">
+      </div>
+      <p class="hint" id="savedPlacesFilterHint" style="margin:-6px 0 12px; display:none;"></p>
       <div id="savedPlacesMap"></div>
       <div class="card" id="savedPlacesCard"></div>
     </div>
@@ -1497,24 +1502,65 @@ var firebaseConfig = {
     }
   }
 
+  function savedPlaceMatches(p, needle) {
+    if (!needle) return true;
+    var hay = (p.name + " " + p.memo).toLowerCase();
+    return hay.indexOf(needle) !== -1;
+  }
+
   function renderSavedPlaces() {
     var card = document.getElementById("savedPlacesCard");
-    var places = state.savedPlaces || [];
-    if (!places.length) {
-      card.innerHTML = '<p class="hint" style="margin:0;">아직 가져온 장소가 없어요. 위에서 "저장한 장소.json" 파일을 올려보세요.</p>';
+    var hintEl = document.getElementById("savedPlacesFilterHint");
+    var all = state.savedPlaces || [];
+    var filterText = (document.getElementById("savedPlacesFilter").value || "").trim().toLowerCase();
+    var indexed = [];
+    all.forEach(function (p, i) { if (savedPlaceMatches(p, filterText)) indexed.push({ p: p, i: i }); });
+    var shown = indexed.map(function (x) { return x.p; });
+
+    if (filterText && shown.length < all.length) {
+      hintEl.style.display = "block";
+      hintEl.innerHTML = shown.length + '개 검색됨 (전체 ' + all.length + '개) · ' +
+        '<a href="#" id="savedPlacesBulkDel" style="color:var(--color-critical);text-decoration:underline;">검색 결과만 남기고 나머지 ' + (all.length - shown.length) + '개 삭제</a>';
+      var bulkBtn = document.getElementById("savedPlacesBulkDel");
+      bulkBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (!confirm("검색 결과(" + shown.length + "개)만 남기고 나머지 " + (all.length - shown.length) + "개를 삭제할까요?")) return;
+        state.savedPlaces = shown;
+        save();
+        renderSavedPlaces();
+      });
     } else {
-      card.innerHTML = places.map(function (p, i) {
-        return '<div class="saved-place-item" data-i="' + i + '">' +
+      hintEl.style.display = "none";
+      hintEl.innerHTML = "";
+    }
+
+    if (!all.length) {
+      card.innerHTML = '<p class="hint" style="margin:0;">아직 가져온 장소가 없어요. 위에서 "저장한 장소.json" 파일을 올려보세요.</p>';
+    } else if (!shown.length) {
+      card.innerHTML = '<p class="hint" style="margin:0;">검색 결과가 없어요.</p>';
+    } else {
+      card.innerHTML = indexed.map(function (x) {
+        var p = x.p;
+        return '<div class="saved-place-item" data-i="' + x.i + '">' +
+          '<div class="saved-place-body" data-goto="1">' +
           '<div class="saved-place-name">' + escapeHtml(p.name) + '</div>' +
           (p.memo ? '<div class="saved-place-memo">' + escapeHtml(p.memo) + '</div>' : '') +
           (p.url ? '<a class="saved-place-link" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();">구글맵에서 보기 ↗</a>' : '') +
+          '</div>' +
+          '<button class="icon-btn" data-del="' + x.i + '" aria-label="삭제">✕</button>' +
           '</div>';
       }).join("");
       card.querySelectorAll(".saved-place-item").forEach(function (el) {
-        el.addEventListener("click", function () {
-          var p = places[Number(el.dataset.i)];
+        var i = Number(el.dataset.i);
+        el.querySelector("[data-goto]").addEventListener("click", function () {
+          var p = all[i];
           var map = ensureSavedPlacesMap();
           if (map) map.setView([p.lat, p.lng], 16);
+        });
+        el.querySelector("[data-del]").addEventListener("click", function () {
+          state.savedPlaces.splice(i, 1);
+          save();
+          renderSavedPlaces();
         });
       });
     }
@@ -1522,13 +1568,19 @@ var firebaseConfig = {
     var map = ensureSavedPlacesMap();
     if (!map || !savedPlacesLayer) return;
     savedPlacesLayer.clearLayers();
-    places.forEach(function (p) {
+    shown.forEach(function (p) {
       L.marker([p.lat, p.lng]).addTo(savedPlacesLayer).bindPopup(escapeHtml(p.name));
     });
-    if (places.length) {
-      map.fitBounds(places.map(function (p) { return [p.lat, p.lng]; }), { padding: [24, 24], maxZoom: 15 });
+    if (shown.length) {
+      map.fitBounds(shown.map(function (p) { return [p.lat, p.lng]; }), { padding: [24, 24], maxZoom: 15 });
     }
   }
+
+  var savedPlacesFilterTimer = null;
+  document.getElementById("savedPlacesFilter").addEventListener("input", function () {
+    clearTimeout(savedPlacesFilterTimer);
+    savedPlacesFilterTimer = setTimeout(renderSavedPlaces, 200);
+  });
 
   document.getElementById("savedPlacesFile").addEventListener("change", function (e) {
     var file = e.target.files && e.target.files[0];
