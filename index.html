@@ -176,7 +176,7 @@
     color: var(--on-primary-strong); background: var(--primary);
     border-radius: var(--radius-lg); padding: 6px 12px; font-size: 0.82rem; flex-shrink: 0;
   }
-  .hero-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-md); }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-md); margin-bottom: var(--spacing-md); }
   .hero-chip {
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--surface-sunk); border: none;
@@ -533,15 +533,15 @@
       <input class="hero-title-input" id="heroTitle" maxlength="40" aria-label="여행 이름">
       <span class="dday mono" id="ddayBadge">D-day</span>
     </div>
+  </div>
+
+  <!-- ITINERARY -->
+  <section class="panel active" id="panel-itinerary">
     <div class="hero-chips">
       <span class="hero-chip"><input type="number" id="heroNightsNum" min="0" max="90" aria-label="박수">박 <input type="number" id="heroDaysNum" min="1" max="90" aria-label="일수">일</span>
       <span class="hero-chip"><input type="number" id="heroPeopleNum" min="1" max="30" aria-label="인원 수">인</span>
       <span class="hero-chip date-chip">출발일<input type="date" id="tripStart"></span>
     </div>
-  </div>
-
-  <!-- ITINERARY -->
-  <section class="panel active" id="panel-itinerary">
     <div class="day-row" id="dayRow"></div>
     <div id="dayContent" style="margin-top:18px;"></div>
   </section>
