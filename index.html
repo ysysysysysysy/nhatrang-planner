@@ -233,6 +233,16 @@
   .icon-btn:hover { background: var(--color-critical-soft); border-color: var(--color-critical); color: var(--critical); }
   .icon-btn:focus-visible { outline: 2px solid var(--primary-strong); outline-offset: 1px; }
 
+  .reorder-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .reorder-btn {
+    background: var(--surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--ink-faint); width: 26px; height: 18px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; line-height: 1;
+  }
+  .reorder-btn:hover:not(:disabled) { background: var(--color-primary-extra-soft); border-color: var(--color-secondary-border); color: var(--ink); }
+  .reorder-btn:disabled { opacity: 0.25; cursor: default; }
+  .reorder-btn:focus-visible { outline: 2px solid var(--primary-strong); outline-offset: 1px; }
+
   .add-btn {
     background: var(--color-primary-extra-soft); border: 1px solid var(--color-secondary-border); border-radius: var(--radius-md);
     color: var(--ink); padding: 12px 16px; width: 100%; cursor: pointer;
@@ -275,9 +285,12 @@
     content: ""; position: absolute; left: -24px; top: 16px; width: 10px; height: 10px;
     border-radius: 50%; background: var(--primary-strong); border: 2px solid var(--surface);
   }
-  .tl-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  .tl-time { width: 140px; flex-shrink: 0; font-size: 0.7rem; }
-  .tl-title { flex: 1; min-width: 120px; font-weight: 700; }
+  .tl-head { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; }
+  .tl-time { width: 126px; flex-shrink: 0; font-size: 0.66rem; padding-left: 6px; padding-right: 4px; }
+  .tl-title { flex: 1 1 auto; min-width: 0; font-weight: 700; }
+  .tl-head .reorder-btns { flex-shrink: 0; }
+  .tl-head .reorder-btn { width: 22px; height: 16px; font-size: 0.55rem; }
+  .tl-head .icon-btn { width: 30px; height: 30px; font-size: 0.85rem; flex-shrink: 0; }
   .tl-loc { margin-top: 8px; }
 
   /* ---------- BUDGET ---------- */
@@ -333,6 +346,7 @@
   .expense-item { padding: 12px 0; border-top: 1px solid var(--color-border); }
   .expense-item:first-child { border-top: none; }
   .expense-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+  .expense-row1-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .expense-row2 { display: grid; grid-template-columns: 1fr 88px 68px; gap: 6px; }
   .expense-row2 .num-input { padding-left: 8px; padding-right: 8px; }
   .cat-select {
@@ -399,6 +413,14 @@
     background: var(--color-primary-extra-soft); border: 1px dashed var(--color-secondary-border);
     border-radius: var(--radius-md); padding: 8px 14px; font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); cursor: pointer;
   }
+
+  .shopping-item { padding: 10px 0; border-top: 1px solid var(--color-border); }
+  .shopping-item:first-child { border-top: none; }
+  .shopping-item-row { display: flex; align-items: center; gap: 10px; }
+  .shopping-item-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary-strong); flex-shrink: 0; }
+  .shopping-item-row .clabel { flex: 1; font-size: 0.92rem; }
+  .shopping-item.checked .shopping-item-row .clabel { text-decoration: line-through; color: var(--ink-faint); }
+  .shopping-item .tip-photo-wrap, .shopping-item .tip-photo-add { margin-top: 8px; }
 
   .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .book-grid .full { grid-column: 1 / -1; }
@@ -498,6 +520,7 @@
   <section class="panel" id="panel-info">
     <div class="subtab-row">
       <button class="subtab-btn active" data-sub="prep">여행 준비</button>
+      <button class="subtab-btn" data-sub="shopping">쇼핑 목록</button>
       <button class="subtab-btn" data-sub="places">맛집·명소</button>
       <button class="subtab-btn" data-sub="tips">현지 꿀팁</button>
       <button class="subtab-btn" data-sub="booking">예약 정보</button>
@@ -517,6 +540,16 @@
       <p class="hint" style="margin:-8px 0 12px;">카테고리를 만들고, 그 안에 챙길 물건을 추가해보세요</p>
       <div id="packingCategories"></div>
       <button class="add-btn" id="addPackingCategoryBtn" style="margin-top:10px;">+ 카테고리 추가</button>
+    </div>
+
+    <div class="subpanel" id="sub-shopping">
+      <div class="section-title"><h2>쇼핑 목록</h2></div>
+      <p class="hint" style="margin:-8px 0 12px;">사고 싶은 물건을 적어두고, 참고할 사진도 붙여보세요</p>
+      <div class="card" id="shoppingCard"></div>
+      <div class="quick-add">
+        <input class="text-input" id="shoppingInput" placeholder="예: 코코넛 오일" maxlength="60">
+        <button class="quick-add-btn" id="shoppingAddBtn">추가</button>
+      </div>
     </div>
 
     <div class="subpanel" id="sub-places">
@@ -744,7 +777,8 @@ var firebaseConfig = {
         inFlight: "", inDate: "", inDep: "", inArr: "",
         hotelName: "", hotelIn: "", hotelOut: "", hotelConf: "", hotelPhone: "", hotelAddr: ""
       },
-      googleMapsListUrl: ""
+      googleMapsListUrl: "",
+      shopping: []
     };
   }
 
@@ -778,6 +812,7 @@ var firebaseConfig = {
       if (typeof cat.category !== "string") cat.category = "카테고리";
       if (!Array.isArray(cat.items)) cat.items = [];
     });
+    if (!Array.isArray(parsed.shopping)) parsed.shopping = [];
     return parsed;
   }
 
@@ -903,6 +938,36 @@ var firebaseConfig = {
     });
   }
 
+  /* ---------------- REORDER (공용) ---------------- */
+  function moveArrayItem(arr, i, dir) {
+    var j = i + dir;
+    if (j < 0 || j >= arr.length) return false;
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    return true;
+  }
+  function reorderBtnsHtml(i, len, prefix) {
+    prefix = prefix || "";
+    return '<div class="reorder-btns">' +
+      '<button type="button" class="reorder-btn" data-' + prefix + 'move-up="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="위로 이동">▲</button>' +
+      '<button type="button" class="reorder-btn" data-' + prefix + 'move-down="' + i + '"' + (i === len - 1 ? " disabled" : "") + ' aria-label="아래로 이동">▼</button>' +
+      '</div>';
+  }
+  function wireReorderBtns(container, arr, onMoved, prefix) {
+    prefix = prefix || "";
+    container.querySelectorAll("[data-" + prefix + "move-up]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-" + prefix + "move-up"));
+        if (moveArrayItem(arr, i, -1)) onMoved();
+      });
+    });
+    container.querySelectorAll("[data-" + prefix + "move-down]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-" + prefix + "move-down"));
+        if (moveArrayItem(arr, i, 1)) onMoved();
+      });
+    });
+  }
+
   var CHIP_COLORS = ["coral", "sky", "pink", "gold", "mint"];
   function chipColorFor(name) {
     var h = 0;
@@ -1009,6 +1074,7 @@ var firebaseConfig = {
         '<div class="tl-head">' +
         '<input class="text-input tl-time mono" type="time" value="' + escapeHtml(item.time) + '" data-field="time">' +
         '<input class="text-input tl-title" placeholder="일정 제목" value="' + escapeHtml(item.title) + '" data-field="title">' +
+        reorderBtnsHtml(i, day.items.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>' +
         '<textarea class="textarea tl-loc" placeholder="메모 / 장소" data-field="memo">' + escapeHtml(item.memo) + '</textarea>' +
@@ -1031,6 +1097,7 @@ var firebaseConfig = {
         renderDayContent();
       });
     });
+    wireReorderBtns(wrap, day.items, function () { save(); renderDayContent(); });
     document.getElementById("addItemBtn").addEventListener("click", function () {
       day.items.push({ time: "12:00", title: "", memo: "" });
       save();
@@ -1080,6 +1147,7 @@ var firebaseConfig = {
         '<div class="budget-row-head">' +
         '<input class="text-input" data-field="name" value="' + escapeHtml(row.name) + '">' +
         '<button type="button" class="split-toggle' + (row.split ? " active" : "") + '" data-split="1">인원별</button>' +
+        reorderBtnsHtml(i, state.budget.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>' +
         '<div class="status-pill ' + st + '" style="display:inline-block;margin-bottom:10px;">' + statusLabel[st] + '</div>' +
@@ -1136,6 +1204,7 @@ var firebaseConfig = {
         renderBudget();
       });
     });
+    wireReorderBtns(card, state.budget, function () { save(); renderBudget(); });
   }
 
   function updateBudgetRowVisual(i) {
@@ -1242,7 +1311,10 @@ var firebaseConfig = {
         '<select class="cat-select" data-field="category" style="background:var(--' + color + '-soft);color:var(--' + color + ');">' +
         categoryOptionsHtml(cat) +
         '</select>' +
+        '<div class="expense-row1-actions">' +
+        reorderBtnsHtml(i, day.expenses.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
+        '</div>' +
         '</div>' +
         '<div class="expense-row2">' +
         '<input class="text-input exp-item" data-field="item" placeholder="품목 (예: 망고빙수)" value="' + escapeHtml(e.item) + '">' +
@@ -1291,6 +1363,7 @@ var firebaseConfig = {
         renderDayChart();
       });
     });
+    wireReorderBtns(listEl, day.expenses, function () { save(); renderExpenseList(); });
   }
 
   function convertLabel(e) {
@@ -1370,6 +1443,7 @@ var firebaseConfig = {
       return '<div class="check-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
         '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
         '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+        reorderBtnsHtml(i, list.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>';
     }).join("");
@@ -1386,6 +1460,7 @@ var firebaseConfig = {
         renderChecklist(listKey, cardId);
       });
     });
+    wireReorderBtns(card, list, function () { save(); renderChecklist(listKey, cardId); });
   }
   function renderTodo() { renderChecklist("todo", "todoCard"); }
 
@@ -1404,6 +1479,7 @@ var firebaseConfig = {
             return '<div class="check-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
               '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
               '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+              reorderBtnsHtml(i, cat.items.length, "item-") +
               '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
               '</div>';
           }).join("")
@@ -1411,6 +1487,7 @@ var firebaseConfig = {
       return '<div class="card packing-cat" data-ci="' + ci + '">' +
         '<div class="packing-cat-head">' +
         '<input class="text-input" data-field="category" value="' + escapeHtml(cat.category) + '" maxlength="30">' +
+        reorderBtnsHtml(ci, state.packing.length, "cat-") +
         '<button class="icon-btn" data-del-cat="' + ci + '" aria-label="카테고리 삭제">✕</button>' +
         '</div>' +
         '<div class="packing-cat-items">' + itemsHtml + '</div>' +
@@ -1449,6 +1526,7 @@ var firebaseConfig = {
           renderPacking();
         });
       });
+      wireReorderBtns(catEl, cat.items, function () { save(); renderPacking(); }, "item-");
 
       var addInput = catEl.querySelector("[data-cat-input]");
       var addBtn = catEl.querySelector("[data-cat-add]");
@@ -1464,6 +1542,7 @@ var firebaseConfig = {
       addBtn.addEventListener("click", commitItem);
       bindEnterSubmit(addInput, commitItem);
     });
+    wireReorderBtns(wrap, state.packing, function () { save(); renderPacking(); }, "cat-");
   }
   document.getElementById("addPackingCategoryBtn").addEventListener("click", function () {
     state.packing.push({ category: "새 카테고리", items: [] });
@@ -1505,6 +1584,7 @@ var firebaseConfig = {
         '<option ' + (p.type === "명소" ? "selected" : "") + '>명소</option>' +
         '</select>' +
         '<input class="text-input" data-field="name" value="' + escapeHtml(p.name) + '">' +
+        reorderBtnsHtml(i, state.places.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>' +
         '<textarea class="textarea" data-field="memo" placeholder="메모">' + escapeHtml(p.memo) + '</textarea>' +
@@ -1529,6 +1609,7 @@ var firebaseConfig = {
         renderPlaces();
       });
     });
+    wireReorderBtns(card, state.places, function () { save(); renderPlaces(); });
   }
   document.getElementById("addPlaceBtn").addEventListener("click", function () {
     state.places.push({ name: "", type: "맛집", memo: "" });
@@ -1560,7 +1641,7 @@ var firebaseConfig = {
     });
   }
 
-  function handleTipPhotoFile(i, file) {
+  function handlePhotoFile(arr, i, file, rerender) {
     if (!file) return;
     resizeImageFile(file, 640, 0.6).then(function (dataUrl) {
       if (dataUrl.length <= 300000) return dataUrl;
@@ -1569,13 +1650,15 @@ var firebaseConfig = {
         return smaller;
       });
     }).then(function (finalUrl) {
-      state.tips[i].photo = finalUrl;
+      arr[i].photo = finalUrl;
       save();
-      renderTips();
+      rerender();
     }).catch(function (err) {
       alert((err && err.message) || "사진을 처리하지 못했어요.");
     });
   }
+  function handleTipPhotoFile(i, file) { handlePhotoFile(state.tips, i, file, renderTips); }
+  function handleShoppingPhotoFile(i, file) { handlePhotoFile(state.shopping, i, file, renderShopping); }
 
   function renderTips() {
     var card = document.getElementById("tipsCard");
@@ -1590,6 +1673,7 @@ var firebaseConfig = {
         '<textarea class="textarea" data-field="tip">' + escapeHtml(t.text) + '</textarea>' +
         photoHtml +
         '</div>' +
+        reorderBtnsHtml(i, state.tips.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>';
     }).join("");
@@ -1621,12 +1705,68 @@ var firebaseConfig = {
         });
       }
     });
+    wireReorderBtns(card, state.tips, function () { save(); renderTips(); });
   }
   document.getElementById("addTipBtn").addEventListener("click", function () {
     state.tips.push({ text: "", photo: null });
     save();
     renderTips();
   });
+
+  /* ---------------- SHOPPING LIST ---------------- */
+  function renderShopping() {
+    var card = document.getElementById("shoppingCard");
+    if (!state.shopping.length) {
+      card.innerHTML = '<p class="hint" style="margin:0;">아직 담긴 항목이 없어요.</p>';
+    } else {
+      card.innerHTML = state.shopping.map(function (p, i) {
+        var photoHtml = p.photo
+          ? '<div class="tip-photo-wrap"><img class="tip-photo" src="' + p.photo + '" alt="쇼핑 항목 사진">' +
+            '<button type="button" class="tip-photo-remove" data-photo-del="' + i + '">사진 제거</button></div>'
+          : '<label class="tip-photo-add">+ 사진 추가<input type="file" accept="image/*" data-photo-add="' + i + '" style="display:none;"></label>';
+        return '<div class="shopping-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
+          '<div class="shopping-item-row">' +
+          '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
+          '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+          reorderBtnsHtml(i, state.shopping.length) +
+          '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
+          '</div>' +
+          photoHtml +
+          '</div>';
+      }).join("");
+    }
+    card.querySelectorAll(".shopping-item").forEach(function (el) {
+      var i = Number(el.dataset.i);
+      el.querySelector("input[type=checkbox]").addEventListener("change", function (e) {
+        state.shopping[i].checked = e.target.checked;
+        el.classList.toggle("checked", e.target.checked);
+        save();
+      });
+      el.querySelector("[data-del]").addEventListener("click", function () {
+        state.shopping.splice(i, 1);
+        save();
+        renderShopping();
+      });
+      var photoInput = el.querySelector("[data-photo-add]");
+      if (photoInput) {
+        photoInput.addEventListener("change", function (e) {
+          var file = e.target.files && e.target.files[0];
+          handleShoppingPhotoFile(i, file);
+          e.target.value = "";
+        });
+      }
+      var photoDelBtn = el.querySelector("[data-photo-del]");
+      if (photoDelBtn) {
+        photoDelBtn.addEventListener("click", function () {
+          state.shopping[i].photo = null;
+          save();
+          renderShopping();
+        });
+      }
+    });
+    wireReorderBtns(card, state.shopping, function () { save(); renderShopping(); });
+  }
+  wireQuickAdd("shoppingInput", "shoppingAddBtn", "shopping", renderShopping);
 
   /* ---------------- BOOKING ---------------- */
   var bookingFields = {
@@ -1689,6 +1829,7 @@ var firebaseConfig = {
     renderDayChart();
     renderTodo();
     renderPacking();
+    renderShopping();
     renderPlaces();
     renderTips();
     renderGoogleMapsListUrl();
