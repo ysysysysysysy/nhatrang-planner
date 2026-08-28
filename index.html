@@ -1633,6 +1633,13 @@ var firebaseConfig = {
     state.budget.push({ name: "새 항목", split: false, budget: new Array(n).fill(0), actual: new Array(n).fill(0), personNames: names });
     save();
     renderBudget();
+    var rows = document.querySelectorAll("#budgetCard .budget-row");
+    var newRow = rows[rows.length - 1];
+    if (newRow) {
+      newRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      var nameInput = newRow.querySelector('[data-field="name"]');
+      if (nameInput) { nameInput.focus(); nameInput.select(); }
+    }
   });
 
   /* ---------------- EXPENSE LOG (day-by-day, real-time) ---------------- */
