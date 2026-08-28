@@ -158,6 +158,19 @@
     background: transparent; border: none; color: var(--ink); padding: 3px 2px;
     font-family: 'Plex Mono', ui-monospace, monospace; font-weight: 600; font-size: 0.8rem;
   }
+  .hero-eyebrow-input, .hero-title-input, .hero-chip input[type="text"] {
+    background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+  }
+  .hero-eyebrow-input:hover, .hero-title-input:hover, .hero-chip input[type="text"]:hover { border-color: var(--color-border); }
+  .hero-eyebrow-input:focus, .hero-title-input:focus, .hero-chip input[type="text"]:focus {
+    outline: none; border-color: var(--primary-strong); background: var(--surface);
+  }
+  .hero-eyebrow-input {
+    font-family: 'Plex Mono', ui-monospace, monospace; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint); display: block; width: 100%; min-height: auto; padding: 2px 4px;
+  }
+  .hero-title-input { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); min-height: auto; padding: 2px 4px; flex: 1; min-width: 0; }
+  .hero-chip input[type="text"] { color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; min-height: auto; padding: 3px 4px; width: 68px; }
 
   /* ---------- BOTTOM NAV ---------- */
   .bottom-nav-wrap {
@@ -388,35 +401,21 @@
   }
   .reset-btn { background: none; border: none; color: var(--ink-faint); font-size: 0.78rem; text-decoration: underline; cursor: pointer; padding: 8px 0; }
   .save-note { font-size: 0.72rem; color: var(--ink-faint); font-family: 'Plex Mono', ui-monospace, monospace; }
-
-  /* ---------- SAVED PLACES MAP ---------- */
-  .saved-import-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-  .saved-import-row input[type="file"] { flex: 1; min-width: 180px; font-size: 0.82rem; }
-  #savedPlacesMap { width: 100%; height: 320px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: 14px; background: var(--surface-sunk); }
-  .saved-place-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--color-border); }
-  .saved-place-item:first-child { border-top: none; }
-  .saved-place-item:hover { background: var(--color-primary-extra-soft); }
-  .saved-place-body { flex: 1; cursor: pointer; min-width: 0; }
-  .saved-place-name { font-weight: 700; font-size: 0.9rem; }
-  .saved-place-memo { font-size: 0.78rem; color: var(--ink-faint); margin-top: 2px; }
-  .saved-place-link { display: inline-block; font-size: 0.78rem; color: var(--ink-faint); text-decoration: underline; margin-top: 4px; }
 </style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
 <div class="wrap">
 
   <div class="hero">
-    <span class="hero-eyebrow">VIỆT NAM · NHA TRANG</span>
+    <input class="hero-eyebrow-input" id="heroEyebrow" maxlength="60" aria-label="여행지 표기">
     <div class="hero-head">
-      <h1 class="hero-title">나트랑 여행</h1>
+      <input class="hero-title-input" id="heroTitle" maxlength="40" aria-label="여행 이름">
       <span class="dday mono" id="ddayBadge">D-day</span>
     </div>
     <div class="hero-chips">
-      <span class="hero-chip">3박 5일</span>
-      <span class="hero-chip">2인</span>
+      <span class="hero-chip"><input type="text" id="heroNights" maxlength="16" aria-label="박수/일수"></span>
+      <span class="hero-chip"><input type="text" id="heroPeople" maxlength="16" aria-label="인원"></span>
       <span class="hero-chip date-chip">출발일<input type="date" id="tripStart"></span>
     </div>
   </div>
@@ -545,22 +544,10 @@
     <div class="subpanel" id="sub-saved">
       <div class="section-title"><h2>구글맵 저장 목록 바로가기</h2></div>
       <p class="hint" style="margin:-6px 0 12px;">구글맵 앱에서 목록 → 공유 아이콘으로 얻은 링크를 붙여넣으면, 언제든 원본 목록을 한 번에 열 수 있어요</p>
-      <div class="quick-add" style="margin-top:0; margin-bottom:20px;">
+      <div class="quick-add" style="margin-top:0;">
         <input type="url" class="text-input" id="googleMapsListUrl" placeholder="https://maps.app.goo.gl/...">
         <a class="quick-add-btn" id="googleMapsListOpenBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">열기 ↗</a>
       </div>
-
-      <div class="section-title" style="margin-top:0;"><h2>저장한 장소 가져오기</h2></div>
-      <p class="hint" style="margin:-6px 0 12px;">구글 테이크아웃(takeout.google.com)에서 "Maps(내 장소)"를 내보낸 뒤 "저장한 장소.json" 파일을 여기에 올려보세요. 지도와 목록에 반영되고, 다시 올리면 통째로 교체돼요</p>
-      <div class="saved-import-row">
-        <input type="file" id="savedPlacesFile" accept=".json">
-      </div>
-      <div class="saved-import-row">
-        <input type="text" class="text-input" id="savedPlacesFilter" placeholder="이름/주소로 검색 (예: Nha Trang, 나트랑)">
-      </div>
-      <p class="hint" id="savedPlacesFilterHint" style="margin:-6px 0 12px; display:none;"></p>
-      <div id="savedPlacesMap"></div>
-      <div class="card" id="savedPlacesCard"></div>
     </div>
   </section>
 
@@ -621,6 +608,10 @@ var firebaseConfig = {
 
   function defaultState() {
     return {
+      tripName: "나트랑 여행",
+      tripSubtitle: "VIỆT NAM · NHA TRANG",
+      tripNights: "3박 5일",
+      tripPeople: "2인",
       tripStart: defaultTripStart(),
       activeDay: 0,
       activeBudgetDay: 0,
@@ -726,7 +717,6 @@ var firebaseConfig = {
         inFlight: "", inDate: "", inDep: "", inArr: "",
         hotelName: "", hotelIn: "", hotelOut: "", hotelConf: "", hotelPhone: "", hotelAddr: ""
       },
-      savedPlaces: [],
       googleMapsListUrl: ""
     };
   }
@@ -750,7 +740,6 @@ var firebaseConfig = {
         if (e.currency !== "KRW" && e.currency !== "VND") e.currency = "KRW";
       });
     });
-    if (!Array.isArray(parsed.savedPlaces)) parsed.savedPlaces = [];
     return parsed;
   }
 
@@ -904,9 +893,6 @@ var firebaseConfig = {
       document.querySelectorAll(".subpanel").forEach(function (p) { p.classList.remove("active"); });
       btn.classList.add("active");
       document.getElementById("sub-" + btn.dataset.sub).classList.add("active");
-      if (btn.dataset.sub === "saved") {
-        setTimeout(refreshSavedPlacesMapView, 0);
-      }
     });
   });
 
@@ -919,6 +905,22 @@ var firebaseConfig = {
     renderDday();
     renderDayRow();
     renderExpenseDayRow();
+  });
+
+  [
+    ["heroEyebrow", "tripSubtitle"],
+    ["heroTitle", "tripName"],
+    ["heroNights", "tripNights"],
+    ["heroPeople", "tripPeople"]
+  ].forEach(function (pair) {
+    var el = document.getElementById(pair[0]);
+    var key = pair[1];
+    el.value = state[key];
+    el.addEventListener("input", function () {
+      state[key] = el.value;
+      save();
+      if (key === "tripName") document.title = (state.tripName || "여행 플래너") + " 플래너";
+    });
   });
 
   function renderDday() {
@@ -1459,171 +1461,6 @@ var firebaseConfig = {
     });
   });
 
-  /* ---------------- SAVED PLACES (구글 테이크아웃 JSON 가져오기 + 지도) ---------------- */
-  var savedPlacesMap = null;
-  var savedPlacesLayer = null;
-
-  function parseSavedPlacesJson(jsonText) {
-    var data = JSON.parse(jsonText);
-    var features = (data && data.features) || [];
-    var places = [];
-    for (var i = 0; i < features.length; i++) {
-      var f = features[i];
-      var coords = f && f.geometry && f.geometry.coordinates;
-      if (!Array.isArray(coords) || coords.length < 2) continue;
-      var lng = Number(coords[0]);
-      var lat = Number(coords[1]);
-      if (!isFinite(lat) || !isFinite(lng)) continue;
-      var props = (f && f.properties) || {};
-      var loc = props.location || {};
-      places.push({
-        name: loc.name || "이름 없음",
-        lat: lat,
-        lng: lng,
-        memo: loc.address || "",
-        url: props.google_maps_url || ""
-      });
-    }
-    return places;
-  }
-
-  function ensureSavedPlacesMap() {
-    if (savedPlacesMap) return savedPlacesMap;
-    var el = document.getElementById("savedPlacesMap");
-    if (!el || typeof L === "undefined") return null;
-    savedPlacesMap = L.map(el).setView([12.2388, 109.1967], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(savedPlacesMap);
-    savedPlacesLayer = L.layerGroup().addTo(savedPlacesMap);
-    return savedPlacesMap;
-  }
-
-  function refreshSavedPlacesMapView() {
-    if (!savedPlacesMap) return;
-    savedPlacesMap.invalidateSize();
-    var places = state.savedPlaces || [];
-    if (places.length) {
-      var bounds = places.map(function (p) { return [p.lat, p.lng]; });
-      savedPlacesMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
-    }
-  }
-
-  function savedPlaceMatches(p, needle) {
-    if (!needle) return true;
-    var hay = (p.name + " " + p.memo).toLowerCase();
-    return hay.indexOf(needle) !== -1;
-  }
-
-  function renderSavedPlaces() {
-    var card = document.getElementById("savedPlacesCard");
-    var hintEl = document.getElementById("savedPlacesFilterHint");
-    var all = state.savedPlaces || [];
-    var filterText = (document.getElementById("savedPlacesFilter").value || "").trim().toLowerCase();
-    var indexed = [];
-    all.forEach(function (p, i) { if (savedPlaceMatches(p, filterText)) indexed.push({ p: p, i: i }); });
-    var shown = indexed.map(function (x) { return x.p; });
-
-    if (filterText && shown.length < all.length) {
-      hintEl.style.display = "block";
-      hintEl.innerHTML = shown.length + '개 검색됨 (전체 ' + all.length + '개) · ' +
-        '<a href="#" id="savedPlacesBulkDel" style="color:var(--color-critical);text-decoration:underline;">검색 결과만 남기고 나머지 ' + (all.length - shown.length) + '개 삭제</a>';
-      var bulkBtn = document.getElementById("savedPlacesBulkDel");
-      bulkBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        if (!confirm("검색 결과(" + shown.length + "개)만 남기고 나머지 " + (all.length - shown.length) + "개를 삭제할까요?")) return;
-        state.savedPlaces = shown;
-        save();
-        renderSavedPlaces();
-      });
-    } else {
-      hintEl.style.display = "none";
-      hintEl.innerHTML = "";
-    }
-
-    if (!all.length) {
-      card.innerHTML = '<p class="hint" style="margin:0;">아직 가져온 장소가 없어요. 위에서 "저장한 장소.json" 파일을 올려보세요.</p>';
-    } else if (!shown.length) {
-      card.innerHTML = '<p class="hint" style="margin:0;">검색 결과가 없어요.</p>';
-    } else {
-      card.innerHTML = indexed.map(function (x) {
-        var p = x.p;
-        return '<div class="saved-place-item" data-i="' + x.i + '">' +
-          '<div class="saved-place-body" data-goto="1">' +
-          '<div class="saved-place-name">' + escapeHtml(p.name) + '</div>' +
-          (p.memo ? '<div class="saved-place-memo">' + escapeHtml(p.memo) + '</div>' : '') +
-          (p.url ? '<a class="saved-place-link" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();">구글맵에서 보기 ↗</a>' : '') +
-          '</div>' +
-          '<button class="icon-btn" data-del="' + x.i + '" aria-label="삭제">✕</button>' +
-          '</div>';
-      }).join("");
-      card.querySelectorAll(".saved-place-item").forEach(function (el) {
-        var i = Number(el.dataset.i);
-        el.querySelector("[data-goto]").addEventListener("click", function () {
-          var p = all[i];
-          var map = ensureSavedPlacesMap();
-          if (map) map.setView([p.lat, p.lng], 16);
-        });
-        el.querySelector("[data-del]").addEventListener("click", function () {
-          state.savedPlaces.splice(i, 1);
-          save();
-          renderSavedPlaces();
-        });
-      });
-    }
-
-    var map = ensureSavedPlacesMap();
-    if (!map || !savedPlacesLayer) return;
-    savedPlacesLayer.clearLayers();
-    shown.forEach(function (p) {
-      L.marker([p.lat, p.lng]).addTo(savedPlacesLayer).bindPopup(escapeHtml(p.name));
-    });
-    if (shown.length) {
-      map.fitBounds(shown.map(function (p) { return [p.lat, p.lng]; }), { padding: [24, 24], maxZoom: 15 });
-    }
-  }
-
-  var savedPlacesFilterTimer = null;
-  document.getElementById("savedPlacesFilter").addEventListener("input", function () {
-    clearTimeout(savedPlacesFilterTimer);
-    savedPlacesFilterTimer = setTimeout(renderSavedPlaces, 200);
-  });
-
-  document.getElementById("savedPlacesFile").addEventListener("change", function (e) {
-    var file = e.target.files && e.target.files[0];
-    if (!file) return;
-    if (state.savedPlaces.length && !confirm("기존에 가져온 장소 " + state.savedPlaces.length + "개를 새 파일 내용으로 교체할까요?")) {
-      e.target.value = "";
-      return;
-    }
-    var reader = new FileReader();
-    reader.onload = function () {
-      var places;
-      try {
-        places = parseSavedPlacesJson(String(reader.result));
-      } catch (err) {
-        alert("파일 형식을 읽지 못했어요. 구글 테이크아웃의 \"저장한 장소.json\" 파일이 맞는지 확인해주세요.");
-        e.target.value = "";
-        return;
-      }
-      if (!places.length) {
-        alert("파일에서 위치 정보를 찾지 못했어요. 파일을 확인해주세요.");
-        e.target.value = "";
-        return;
-      }
-      state.savedPlaces = places;
-      save();
-      renderSavedPlaces();
-      e.target.value = "";
-    };
-    reader.onerror = function () {
-      alert("파일을 읽는 중 문제가 생겼어요.");
-      e.target.value = "";
-    };
-    reader.readAsText(file);
-  });
-
   function renderGoogleMapsListUrl() {
     var url = state.googleMapsListUrl || "";
     document.getElementById("googleMapsListUrl").value = url;
@@ -1654,6 +1491,11 @@ var firebaseConfig = {
   /* ---------------- INIT ---------------- */
   function renderAll() {
     tripStartInput.value = state.tripStart;
+    document.getElementById("heroEyebrow").value = state.tripSubtitle;
+    document.getElementById("heroTitle").value = state.tripName;
+    document.getElementById("heroNights").value = state.tripNights;
+    document.getElementById("heroPeople").value = state.tripPeople;
+    document.title = (state.tripName || "여행 플래너") + " 플래너";
     renderDday();
     renderDayRow();
     renderDayContent();
@@ -1665,7 +1507,6 @@ var firebaseConfig = {
     renderPacking();
     renderPlaces();
     renderTips();
-    renderSavedPlaces();
     renderGoogleMapsListUrl();
     fxRate.value = state.fxRate;
     Object.keys(bookingFields).forEach(function (id) {
