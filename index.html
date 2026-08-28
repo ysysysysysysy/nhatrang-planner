@@ -398,6 +398,7 @@
   .saved-place-item:hover { background: var(--color-primary-extra-soft); }
   .saved-place-name { font-weight: 700; font-size: 0.9rem; }
   .saved-place-memo { font-size: 0.78rem; color: var(--ink-faint); margin-top: 2px; }
+  .saved-place-link { display: inline-block; font-size: 0.78rem; color: var(--ink-faint); text-decoration: underline; margin-top: 4px; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -542,9 +543,9 @@
 
     <div class="subpanel" id="sub-saved">
       <div class="section-title"><h2>저장한 장소</h2></div>
-      <p class="hint" style="margin:-6px 0 12px;">구글 테이크아웃(takeout.google.com)에서 "Maps(내 장소)"를 KML로 내보낸 뒤 여기에 올려보세요. 지도와 목록에 반영되고, 다시 올리면 통째로 교체돼요</p>
+      <p class="hint" style="margin:-6px 0 12px;">구글 테이크아웃(takeout.google.com)에서 "Maps(내 장소)"를 내보낸 뒤 "저장한 장소.json" 파일을 여기에 올려보세요. 지도와 목록에 반영되고, 다시 올리면 통째로 교체돼요</p>
       <div class="saved-import-row">
-        <input type="file" id="savedPlacesFile" accept=".kml">
+        <input type="file" id="savedPlacesFile" accept=".json">
       </div>
       <div id="savedPlacesMap"></div>
       <div class="card" id="savedPlacesCard"></div>
@@ -1445,29 +1446,29 @@ var firebaseConfig = {
     });
   });
 
-  /* ---------------- SAVED PLACES (KML 가져오기 + 지도) ---------------- */
+  /* ---------------- SAVED PLACES (구글 테이크아웃 JSON 가져오기 + 지도) ---------------- */
   var savedPlacesMap = null;
   var savedPlacesLayer = null;
 
-  function parseKmlPlaces(kmlText) {
-    var xml = new DOMParser().parseFromString(kmlText, "text/xml");
-    var placemarks = xml.getElementsByTagName("Placemark");
+  function parseSavedPlacesJson(jsonText) {
+    var data = JSON.parse(jsonText);
+    var features = (data && data.features) || [];
     var places = [];
-    for (var i = 0; i < placemarks.length; i++) {
-      var pm = placemarks[i];
-      var nameEl = pm.getElementsByTagName("name")[0];
-      var coordEl = pm.getElementsByTagName("coordinates")[0];
-      var descEl = pm.getElementsByTagName("description")[0];
-      if (!coordEl || !coordEl.textContent) continue;
-      var parts = coordEl.textContent.trim().split(",");
-      var lng = Number(parts[0]);
-      var lat = Number(parts[1]);
+    for (var i = 0; i < features.length; i++) {
+      var f = features[i];
+      var coords = f && f.geometry && f.geometry.coordinates;
+      if (!Array.isArray(coords) || coords.length < 2) continue;
+      var lng = Number(coords[0]);
+      var lat = Number(coords[1]);
       if (!isFinite(lat) || !isFinite(lng)) continue;
+      var props = (f && f.properties) || {};
+      var loc = props.location || {};
       places.push({
-        name: nameEl ? nameEl.textContent.trim() : "이름 없음",
+        name: loc.name || "이름 없음",
         lat: lat,
         lng: lng,
-        memo: descEl ? descEl.textContent.trim() : ""
+        memo: loc.address || "",
+        url: props.google_maps_url || ""
       });
     }
     return places;
@@ -1500,12 +1501,13 @@ var firebaseConfig = {
     var card = document.getElementById("savedPlacesCard");
     var places = state.savedPlaces || [];
     if (!places.length) {
-      card.innerHTML = '<p class="hint" style="margin:0;">아직 가져온 장소가 없어요. 위에서 KML 파일을 올려보세요.</p>';
+      card.innerHTML = '<p class="hint" style="margin:0;">아직 가져온 장소가 없어요. 위에서 "저장한 장소.json" 파일을 올려보세요.</p>';
     } else {
       card.innerHTML = places.map(function (p, i) {
         return '<div class="saved-place-item" data-i="' + i + '">' +
           '<div class="saved-place-name">' + escapeHtml(p.name) + '</div>' +
           (p.memo ? '<div class="saved-place-memo">' + escapeHtml(p.memo) + '</div>' : '') +
+          (p.url ? '<a class="saved-place-link" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();">구글맵에서 보기 ↗</a>' : '') +
           '</div>';
       }).join("");
       card.querySelectorAll(".saved-place-item").forEach(function (el) {
@@ -1537,9 +1539,16 @@ var firebaseConfig = {
     }
     var reader = new FileReader();
     reader.onload = function () {
-      var places = parseKmlPlaces(String(reader.result));
+      var places;
+      try {
+        places = parseSavedPlacesJson(String(reader.result));
+      } catch (err) {
+        alert("파일 형식을 읽지 못했어요. 구글 테이크아웃의 \"저장한 장소.json\" 파일이 맞는지 확인해주세요.");
+        e.target.value = "";
+        return;
+      }
       if (!places.length) {
-        alert("KML에서 위치 정보를 찾지 못했어요. 파일을 확인해주세요.");
+        alert("파일에서 위치 정보를 찾지 못했어요. 파일을 확인해주세요.");
         e.target.value = "";
         return;
       }
