@@ -160,7 +160,7 @@
   .trip-row-del:hover { color: var(--critical); }
 
   /* ---------- HERO ---------- */
-  .hero { padding: var(--spacing-xl) 0 var(--spacing-lg); }
+  .hero { padding: var(--spacing-xl) 0 var(--spacing-lg); border-bottom: 1px solid var(--color-border); }
   .hero-eyebrow {
     font-family: 'Plex Mono', ui-monospace, monospace;
     font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
@@ -200,7 +200,7 @@
   }
   .hero-title-input { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); min-height: auto; padding: 2px 4px; flex: 1; min-width: 0; }
   .hero-chip input[type="number"] {
-    color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; min-height: auto; padding: 3px 2px; width: 30px; text-align: right;
+    color: var(--ink-soft); font-weight: 600; font-size: 16px; min-height: auto; padding: 3px 2px; width: 34px; text-align: right;
   }
 
   /* ---------- BOTTOM NAV ---------- */
@@ -382,6 +382,7 @@
   /* expense log */
   .expense-day-total { padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px solid var(--color-border); }
   .expense-day-total .exp-total-value { font-size: 1.4rem; font-weight: 700; margin-top: 2px; }
+  .expense-day-total .exp-total-sub { margin-top: 2px; }
   .expense-empty { text-align: center; padding: 20px 8px; color: var(--ink-faint); font-size: 0.86rem; line-height: 1.6; }
   .expense-item { padding: 12px 0; border-top: 1px solid var(--color-border); }
   .expense-item:first-child { border-top: none; }
@@ -549,7 +550,7 @@
   <!-- BUDGET (출발 전) -->
   <section class="panel" id="panel-budget">
 
-    <div class="section-title"><h2>출발 전 예산</h2></div>
+    <div class="section-title"><h2>총 예산 및 지출 관리</h2></div>
     <p class="hint" style="margin:-6px 0 12px;">항공·숙소 등 카테고리별로 예산을 세우고 예약이 끝나면 실지출을 채워보세요</p>
     <button class="add-btn" id="addCategoryBtn" style="margin-bottom:10px;">+ 카테고리 추가</button>
     <div class="card" id="budgetCard"></div>
@@ -561,16 +562,22 @@
 
     <div class="section-title"><h2>환율 계산기</h2></div>
     <div class="card fx-card">
+      <div class="fx-rate-row" style="margin-bottom:2px; flex-wrap:wrap;">
+        <label class="field-label" style="margin:0;">현지 통화</label>
+        <select class="text-input" id="localCurrencySelect" style="width:auto; min-width:130px;"></select>
+        <input type="text" class="text-input" id="localCurrencyCustom" maxlength="4" style="width:80px; text-transform:uppercase; display:none;" placeholder="코드 입력">
+      </div>
+      <p class="hint" style="margin:0 0 6px;">다른 나라 여행이면 여기서 통화만 바꿔주세요. 목록에 없으면 "기타"를 선택해 직접 입력할 수 있어요</p>
       <div class="fx-rate-row">
         <span>1 KRW =</span>
         <input type="number" class="num-input" id="fxRate" step="0.01" style="width:100px;">
-        <span>VND</span>
+        <span id="fxRateUnit">VND</span>
       </div>
       <p class="hint" style="margin-top:-8px;">환율은 직접 입력해 최신값으로 맞춰두세요. 아래 지출 기록에도 바로 반영돼요</p>
       <div class="fx-conv-row">
         <div>
-          <label class="field-label">동 (VND)</label>
-          <input type="number" class="num-input" id="fxVnd" placeholder="0">
+          <label class="field-label" id="fxLocalLabel">동 (VND)</label>
+          <input type="number" class="num-input" id="fxLocal" placeholder="0">
         </div>
         <div class="swap">⇄</div>
         <div>
@@ -581,7 +588,7 @@
     </div>
 
     <div class="section-title"><h2>여행 중 지출 기록</h2></div>
-    <p class="hint" style="margin:-6px 0 12px;">산 물건과 금액을 그 자리에서 바로 기록해보세요. 동화(VND)로 적으면 원화로 자동 환산돼요</p>
+    <p class="hint" style="margin:-6px 0 12px;">산 물건과 금액을 그 자리에서 바로 기록해보세요. 현지 통화로 적으면 원화로 자동 환산돼요</p>
     <button class="add-btn" id="addExpenseBtn" style="margin-bottom:10px;">+ 지출 추가</button>
     <div class="day-row" id="expenseDayRow"></div>
     <div class="card" style="margin-top:12px;">
@@ -626,7 +633,7 @@
       <div class="section-title"><h2>쇼핑 목록</h2></div>
       <p class="hint" style="margin:-8px 0 12px;">사고 싶은 물건을 적어두고, 참고할 사진도 붙여보세요</p>
       <div class="quick-add" style="margin-bottom:12px;">
-        <input class="text-input" id="shoppingInput" placeholder="예: 코코넛 오일" maxlength="60">
+        <input class="text-input" id="shoppingInput" placeholder="예: 기념품" maxlength="60">
         <button class="quick-add-btn" id="shoppingAddBtn">추가</button>
       </div>
       <div class="card" id="shoppingCard"></div>
@@ -715,6 +722,29 @@ var firebaseConfig = {
 
   var STORAGE_KEY = "nhatrang-planner-v2";
   var MAX_PHOTOS = 5;
+  var CURRENCY_PRESETS = {
+    VND: { label: "동", symbol: "₫" },
+    JPY: { label: "엔", symbol: "¥" },
+    USD: { label: "달러", symbol: "$" },
+    EUR: { label: "유로", symbol: "€" },
+    THB: { label: "바트", symbol: "฿" },
+    CNY: { label: "위안", symbol: "¥" },
+    TWD: { label: "대만달러", symbol: "NT$" },
+    PHP: { label: "페소", symbol: "₱" },
+    SGD: { label: "싱가포르달러", symbol: "S$" },
+    HKD: { label: "홍콩달러", symbol: "HK$" },
+    GBP: { label: "파운드", symbol: "£" },
+    AUD: { label: "호주달러", symbol: "A$" },
+    IDR: { label: "루피아", symbol: "Rp" },
+    MYR: { label: "링깃", symbol: "RM" }
+  };
+  var CURRENCY_ORDER = ["VND", "JPY", "USD", "EUR", "THB", "CNY", "TWD", "PHP", "SGD", "HKD", "GBP", "AUD", "IDR", "MYR"];
+  function currencyInfo() {
+    var code = ((state && state.localCurrency) || "VND").toUpperCase();
+    var preset = CURRENCY_PRESETS[code];
+    return { code: code, label: preset ? preset.label : code, symbol: preset ? preset.symbol : code };
+  }
+
   var BOOKING_CATEGORIES = ["항공", "숙소", "식당", "기타"];
   var BOOKING_TEMPLATES = {
     "항공": [
@@ -823,6 +853,7 @@ var firebaseConfig = {
         }
       ],
       fxRate: 18.3,
+      localCurrency: "VND",
       budget: [
         { name: "항공", split: true, budget: [400000, 400000], actual: [0, 0], personNames: ["인원1", "인원2"] },
         { name: "숙소", split: false, budget: [400000, 0], actual: [0, 0], personNames: ["인원1", "인원2"] },
@@ -918,9 +949,10 @@ var firebaseConfig = {
     (parsed.days || []).forEach(function (day) {
       if (!Array.isArray(day.expenses)) day.expenses = [];
       day.expenses.forEach(function (e) {
-        if (e.currency !== "KRW" && e.currency !== "VND") e.currency = "KRW";
+        if (e.currency !== "KRW") e.currency = "LOCAL";
       });
     });
+    if (typeof parsed.localCurrency !== "string" || !parsed.localCurrency.trim()) parsed.localCurrency = "VND";
     function normalizeTipItem(t) {
       if (typeof t === "string") return { text: t, photos: [] };
       var photos = Array.isArray(t.photos) ? t.photos : (t.photo ? [t.photo] : []);
@@ -1645,7 +1677,7 @@ var firebaseConfig = {
   /* ---------------- EXPENSE LOG (day-by-day, real-time) ---------------- */
   function toKRW(amount, currency) {
     amount = Number(amount) || 0;
-    if (currency === "VND") {
+    if (currency === "LOCAL") {
       var rate = Number(state.fxRate) || 0;
       return rate > 0 ? amount / rate : 0;
     }
@@ -1678,9 +1710,15 @@ var firebaseConfig = {
 
   function renderExpenseTotalText() {
     var total = dayTotal(state.activeBudgetDay);
+    var rate = Number(state.fxRate) || 0;
+    var info = currencyInfo();
+    var localEquivHtml = rate > 0
+      ? '<div class="exp-total-sub hint">≈ ' + fmt(Math.ceil(total * rate)) + info.symbol + '</div>'
+      : '';
     document.getElementById("expenseDayTotal").innerHTML =
       '<span class="hint">DAY ' + (state.activeBudgetDay + 1) + ' 지출 합계</span>' +
-      '<div class="exp-total-value">₩' + fmt(total) + '</div>';
+      '<div class="exp-total-value">₩' + fmt(total) + '</div>' +
+      localEquivHtml;
   }
 
   function categoryOptionsHtml(selected) {
@@ -1700,10 +1738,11 @@ var firebaseConfig = {
       return;
     }
 
+    var info = currencyInfo();
     listEl.innerHTML = day.expenses.map(function (e, i) {
       var cat = e.category || "미분류";
       var color = chipColorFor(cat);
-      var cur = e.currency === "VND" ? "VND" : "KRW";
+      var cur = e.currency === "KRW" ? "KRW" : "LOCAL";
       return '<div class="expense-item" data-i="' + i + '">' +
         '<div class="expense-row1">' +
         '<select class="cat-select" data-field="category" style="background:var(--' + color + '-soft);color:var(--' + color + ');">' +
@@ -1715,10 +1754,10 @@ var firebaseConfig = {
         '</div>' +
         '</div>' +
         '<div class="expense-row2">' +
-        '<input class="text-input exp-item" data-field="item" placeholder="품목 (예: 망고빙수)" value="' + escapeHtml(e.item) + '">' +
+        '<input class="text-input exp-item" data-field="item" placeholder="품목 (예: 기념품, 식사비)" value="' + escapeHtml(e.item) + '">' +
         '<input type="number" class="num-input exp-amount" data-field="amount" placeholder="0" value="' + (e.amount || "") + '">' +
         '<select class="cur-select" data-field="currency">' +
-        '<option value="VND"' + (cur === "VND" ? " selected" : "") + '>VND</option>' +
+        '<option value="LOCAL"' + (cur === "LOCAL" ? " selected" : "") + '>' + escapeHtml(info.code) + '</option>' +
         '<option value="KRW"' + (cur === "KRW" ? " selected" : "") + '>KRW</option>' +
         '</select>' +
         '</div>' +
@@ -1765,8 +1804,8 @@ var firebaseConfig = {
   }
 
   function convertLabel(e) {
-    if (e.currency === "VND") return "≈ ₩" + fmt(Math.ceil(toKRW(e.amount, "VND")));
-    return "≈ " + fmt((Number(e.amount) || 0) * (Number(state.fxRate) || 0)) + "₫";
+    if (e.currency === "LOCAL") return "≈ ₩" + fmt(Math.ceil(toKRW(e.amount, "LOCAL")));
+    return "≈ " + fmt((Number(e.amount) || 0) * (Number(state.fxRate) || 0)) + currencyInfo().symbol;
   }
   function updateExpenseRowConversion(el, entry) {
     var out = el.querySelector(".exp-convert");
@@ -1782,7 +1821,7 @@ var firebaseConfig = {
 
   document.getElementById("addExpenseBtn").addEventListener("click", function () {
     var day = state.days[state.activeBudgetDay];
-    day.expenses.push({ item: "", amount: 0, category: "미분류", currency: "VND" });
+    day.expenses.push({ item: "", amount: 0, category: "미분류", currency: "LOCAL" });
     save();
     renderExpenseList();
     renderDayChart();
@@ -1814,28 +1853,66 @@ var firebaseConfig = {
   /* ---------------- FX ---------------- */
   var fxRate = document.getElementById("fxRate");
   var fxKrw = document.getElementById("fxKrw");
-  var fxVnd = document.getElementById("fxVnd");
+  var fxLocal = document.getElementById("fxLocal");
+  var localCurrencySelect = document.getElementById("localCurrencySelect");
+  var localCurrencyCustom = document.getElementById("localCurrencyCustom");
+  localCurrencySelect.innerHTML = CURRENCY_ORDER.map(function (code) {
+    return '<option value="' + code + '">' + code + ' (' + CURRENCY_PRESETS[code].label + ')</option>';
+  }).join("") + '<option value="OTHER">기타 (직접 입력)</option>';
+
+  function renderCurrencyLabels() {
+    var info = currencyInfo();
+    document.getElementById("fxRateUnit").textContent = info.code;
+    document.getElementById("fxLocalLabel").textContent = info.label + " (" + info.code + ")";
+    var isKnown = CURRENCY_ORDER.indexOf(info.code) !== -1;
+    localCurrencySelect.value = isKnown ? info.code : "OTHER";
+    localCurrencyCustom.style.display = isKnown ? "none" : "inline-block";
+    if (!isKnown) localCurrencyCustom.value = info.code;
+  }
+
+  function setLocalCurrency(code) {
+    state.localCurrency = (code || "VND").trim().toUpperCase() || "VND";
+    save();
+    renderCurrencyLabels();
+    renderExpenseList();
+    renderExpenseTotalText();
+  }
+
+  localCurrencySelect.addEventListener("change", function () {
+    if (localCurrencySelect.value === "OTHER") {
+      localCurrencyCustom.style.display = "inline-block";
+      localCurrencyCustom.value = "";
+      localCurrencyCustom.focus();
+      return;
+    }
+    setLocalCurrency(localCurrencySelect.value);
+  });
+  localCurrencyCustom.addEventListener("change", function () {
+    setLocalCurrency(localCurrencyCustom.value);
+  });
+
   fxRate.value = state.fxRate;
   fxRate.addEventListener("input", function () {
     state.fxRate = Number(fxRate.value || 0);
     save();
-    if (document.activeElement !== fxVnd) syncFx("krw");
+    if (document.activeElement !== fxLocal) syncFx("krw");
     refreshExpenseConversions();
     renderExpenseTotalText();
     renderDayChart();
   });
   fxKrw.addEventListener("input", function () { syncFx("krw"); });
-  fxVnd.addEventListener("input", function () { syncFx("vnd"); });
+  fxLocal.addEventListener("input", function () { syncFx("local"); });
   function syncFx(from) {
     var rate = Number(fxRate.value || 0);
     if (from === "krw") {
       var krw = Number(fxKrw.value || 0);
-      fxVnd.value = rate ? Math.round(krw * rate) : "";
+      fxLocal.value = rate ? Math.round(krw * rate) : "";
     } else {
-      var vnd = Number(fxVnd.value || 0);
-      fxKrw.value = rate ? Math.round(vnd / rate) : "";
+      var local = Number(fxLocal.value || 0);
+      fxKrw.value = rate ? Math.round(local / rate) : "";
     }
   }
+  renderCurrencyLabels();
 
   /* ---------------- CHECKLISTS (여행 준비 할 일 / 짐 꾸리기) ---------------- */
   function renderChecklist(listKey, cardId) {
@@ -2364,6 +2441,7 @@ var firebaseConfig = {
     renderGoogleMapsListUrl();
     renderBooking();
     fxRate.value = state.fxRate;
+    renderCurrencyLabels();
   }
 
   renderAll();
