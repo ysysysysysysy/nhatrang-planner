@@ -433,16 +433,40 @@
   .tip-item:first-child { border-top: none; }
   .tip-num { font-family: 'Plex Mono', ui-monospace, monospace; color: var(--primary-strong); font-weight: 700; font-size: 0.8rem; padding-top: 12px; width: 20px; flex-shrink: 0; }
   .tip-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .tip-photo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
   .tip-photo-wrap { position: relative; display: inline-block; }
-  .tip-photo { max-width: 160px; max-height: 160px; border-radius: var(--radius-md); display: block; object-fit: cover; }
+  .tip-photo { width: 92px; height: 92px; max-width: 92px; max-height: 92px; border-radius: var(--radius-md); display: block; object-fit: cover; }
   .tip-photo-remove {
     margin-top: 4px; background: none; border: none; color: var(--color-critical);
-    font-size: 0.74rem; text-decoration: underline; cursor: pointer; padding: 0; display: block;
+    font-size: 0.72rem; text-decoration: underline; cursor: pointer; padding: 0; display: block; text-align: center; width: 92px;
   }
   .tip-photo-add {
-    display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    width: 92px; height: 92px; text-align: center;
     background: var(--color-primary-extra-soft); border: 1px dashed var(--color-secondary-border);
-    border-radius: var(--radius-md); padding: 8px 14px; font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+    border-radius: var(--radius-md); font-size: 0.72rem; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+  }
+  .tip-photo-count { font-size: 0.66rem; color: var(--ink-faint); font-weight: 400; }
+  .tip-photo { cursor: zoom-in; }
+
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(10,9,8,0.9); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .lightbox-img { max-width: 100%; max-height: 82vh; border-radius: var(--radius-md); cursor: zoom-out; }
+  .lightbox-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); border: none; color: #fff; width: 42px; height: 42px;
+    border-radius: 50%; font-size: 1.5rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lightbox-nav:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
+  .lightbox-nav:disabled { opacity: 0.25; cursor: default; }
+  .lightbox-prev { left: 12px; }
+  .lightbox-next { right: 12px; }
+  .lightbox-count {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.85); font-size: 0.8rem;
   }
 
   .shopping-item { padding: 10px 0; border-top: 1px solid var(--color-border); }
@@ -451,7 +475,7 @@
   .shopping-item-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary-strong); flex-shrink: 0; }
   .shopping-item-row .clabel { flex: 1; font-size: 0.92rem; }
   .shopping-item.checked .shopping-item-row .clabel { text-decoration: line-through; color: var(--ink-faint); }
-  .shopping-item .tip-photo-wrap, .shopping-item .tip-photo-add { margin-top: 8px; }
+  .shopping-item .tip-photo-row { margin-top: 8px; }
 
   .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .book-grid .full { grid-column: 1 / -1; }
@@ -597,8 +621,9 @@
     </div>
 
     <div class="subpanel" id="sub-tips">
-      <div class="card" id="tipsCard"></div>
-      <button class="add-btn" id="addTipBtn" style="margin-top:10px;">+ 꿀팁 추가</button>
+      <p class="hint" style="margin:-2px 0 12px;">카테고리를 만들고, 그 안에 꿀팁을 추가해보세요</p>
+      <div id="tipsCategories"></div>
+      <button class="add-btn" id="addTipCategoryBtn" style="margin-top:10px;">+ 카테고리 추가</button>
     </div>
 
     <div class="subpanel" id="sub-booking">
@@ -667,6 +692,13 @@
   </div>
 </nav>
 
+<div class="lightbox" id="photoLightbox" style="display:none;">
+  <button type="button" class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="이전 사진">‹</button>
+  <img class="lightbox-img" id="lightboxImg" alt="확대된 사진">
+  <button type="button" class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="다음 사진">›</button>
+  <div class="lightbox-count mono" id="lightboxCount"></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -687,6 +719,7 @@ var firebaseConfig = {
   "use strict";
 
   var STORAGE_KEY = "nhatrang-planner-v2";
+  var MAX_PHOTOS = 5;
 
   function defaultTripStart() {
     var d = new Date();
@@ -806,11 +839,21 @@ var firebaseConfig = {
         { name: "Yen's Restaurant", type: "맛집", memo: "로컬 해산물 맛집" }
       ],
       tips: [
-        "그랩(Grab) 앱을 미리 설치하면 택시보다 저렴하고 흥정 걱정이 없어요.",
-        "식수는 반드시 생수만, 얼음도 프랜차이즈 매장 외에는 주의하세요.",
-        "환전은 시내 금은방이 공항보다 환율이 좋은 편이에요.",
-        "재래시장은 정찰가가 아닌 경우가 많아 흥정이 자연스러운 문화예요.",
-        "오후 스콜(소나기)이 잦은 시기엔 우산을 꼭 챙기세요."
+        {
+          category: "이동·통신",
+          items: ["그랩(Grab) 앱을 미리 설치하면 택시보다 저렴하고 흥정 걱정이 없어요."]
+            .map(function (t) { return { text: t, photos: [] }; })
+        },
+        {
+          category: "환전·쇼핑",
+          items: ["환전은 시내 금은방이 공항보다 환율이 좋은 편이에요.", "재래시장은 정찰가가 아닌 경우가 많아 흥정이 자연스러운 문화예요."]
+            .map(function (t) { return { text: t, photos: [] }; })
+        },
+        {
+          category: "날씨·안전",
+          items: ["식수는 반드시 생수만, 얼음도 프랜차이즈 매장 외에는 주의하세요.", "오후 스콜(소나기)이 잦은 시기엔 우산을 꼭 챙기세요."]
+            .map(function (t) { return { text: t, photos: [] }; })
+        }
       ],
       booking: {
         outFlight: "", outDate: "", outDep: "", outArr: "",
@@ -854,8 +897,21 @@ var firebaseConfig = {
         if (e.currency !== "KRW" && e.currency !== "VND") e.currency = "KRW";
       });
     });
-    parsed.tips = (parsed.tips || []).map(function (t) {
-      return typeof t === "string" ? { text: t, photo: null } : { text: t.text || "", photo: t.photo || null };
+    function normalizeTipItem(t) {
+      if (typeof t === "string") return { text: t, photos: [] };
+      var photos = Array.isArray(t.photos) ? t.photos : (t.photo ? [t.photo] : []);
+      return { text: t.text || "", photos: photos.slice(0, MAX_PHOTOS) };
+    }
+    if (!Array.isArray(parsed.tips)) parsed.tips = [];
+    if (parsed.tips.length && parsed.tips[0] && typeof parsed.tips[0] !== "string" && !("items" in parsed.tips[0])) {
+      parsed.tips = [{ category: "기타", items: parsed.tips }];
+    } else if (parsed.tips.length && typeof parsed.tips[0] === "string") {
+      parsed.tips = [{ category: "기타", items: parsed.tips }];
+    }
+    parsed.tips.forEach(function (cat) {
+      if (typeof cat.category !== "string") cat.category = "카테고리";
+      if (!Array.isArray(cat.items)) cat.items = [];
+      cat.items = cat.items.map(normalizeTipItem);
     });
     if (Array.isArray(parsed.packing) && parsed.packing.length && parsed.packing[0] && "label" in parsed.packing[0]) {
       parsed.packing = [{ category: "기타", items: parsed.packing }];
@@ -866,6 +922,11 @@ var firebaseConfig = {
       if (!Array.isArray(cat.items)) cat.items = [];
     });
     if (!Array.isArray(parsed.shopping)) parsed.shopping = [];
+    parsed.shopping.forEach(function (p) {
+      var photos = Array.isArray(p.photos) ? p.photos : (p.photo ? [p.photo] : []);
+      p.photos = photos.slice(0, MAX_PHOTOS);
+      delete p.photo;
+    });
     return parsed;
   }
 
@@ -1894,74 +1955,168 @@ var firebaseConfig = {
 
   function handlePhotoFile(arr, i, file, rerender) {
     if (!file) return;
-    resizeImageFile(file, 640, 0.6).then(function (dataUrl) {
-      if (dataUrl.length <= 300000) return dataUrl;
-      return resizeImageFile(file, 480, 0.45).then(function (smaller) {
-        if (smaller.length > 300000) throw new Error("이미지 용량이 너무 커요. 더 단순한 사진으로 시도해주세요.");
-        return smaller;
+    if (!Array.isArray(arr[i].photos)) arr[i].photos = [];
+    if (arr[i].photos.length >= MAX_PHOTOS) {
+      alert("사진은 최대 " + MAX_PHOTOS + "장까지 추가할 수 있어요.");
+      return;
+    }
+    resizeImageFile(file, 480, 0.55).then(function (dataUrl) {
+      if (dataUrl.length <= 120000) return dataUrl;
+      return resizeImageFile(file, 360, 0.4).then(function (smaller) {
+        if (smaller.length <= 120000) return smaller;
+        return resizeImageFile(file, 280, 0.3).then(function (smallest) {
+          if (smallest.length > 120000) throw new Error("이미지 용량이 너무 커요. 더 단순한 사진으로 시도해주세요.");
+          return smallest;
+        });
       });
     }).then(function (finalUrl) {
-      arr[i].photo = finalUrl;
+      arr[i].photos.push(finalUrl);
       save();
       rerender();
     }).catch(function (err) {
       alert((err && err.message) || "사진을 처리하지 못했어요.");
     });
   }
-  function handleTipPhotoFile(i, file) { handlePhotoFile(state.tips, i, file, renderTips); }
+  function handleTipPhotoFile(ci, i, file) { handlePhotoFile(state.tips[ci].items, i, file, renderTips); }
   function handleShoppingPhotoFile(i, file) { handlePhotoFile(state.shopping, i, file, renderShopping); }
 
-  function renderTips() {
-    var card = document.getElementById("tipsCard");
-    card.innerHTML = state.tips.map(function (t, i) {
-      var photoHtml = t.photo
-        ? '<div class="tip-photo-wrap"><img class="tip-photo" src="' + t.photo + '" alt="꿀팁 사진">' +
-          '<button type="button" class="tip-photo-remove" data-photo-del="' + i + '">사진 제거</button></div>'
-        : '<label class="tip-photo-add">+ 사진 추가<input type="file" accept="image/*" data-photo-add="' + i + '" style="display:none;"></label>';
-      return '<div class="tip-item" data-i="' + i + '">' +
-        '<span class="tip-num">' + String(i + 1).padStart(2, "0") + '</span>' +
-        '<div class="tip-body">' +
-        '<textarea class="textarea" data-field="tip">' + escapeHtml(t.text) + '</textarea>' +
-        photoHtml +
-        '</div>' +
-        reorderBtnsHtml(i, state.tips.length) +
-        '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
-        '</div>';
+  var lightboxPhotos = [];
+  var lightboxIndex = 0;
+  function renderLightbox() {
+    document.getElementById("lightboxImg").src = lightboxPhotos[lightboxIndex];
+    document.getElementById("lightboxCount").textContent = (lightboxIndex + 1) + " / " + lightboxPhotos.length;
+    document.getElementById("lightboxPrev").disabled = lightboxIndex === 0;
+    document.getElementById("lightboxNext").disabled = lightboxIndex === lightboxPhotos.length - 1;
+  }
+  function openLightbox(photos, index) {
+    lightboxPhotos = photos;
+    lightboxIndex = index;
+    renderLightbox();
+    document.getElementById("photoLightbox").style.display = "flex";
+  }
+  function closeLightbox() {
+    document.getElementById("photoLightbox").style.display = "none";
+  }
+  document.getElementById("photoLightbox").addEventListener("click", function (e) {
+    if (e.target.id === "photoLightbox" || e.target.id === "lightboxImg") closeLightbox();
+  });
+  document.getElementById("lightboxPrev").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (lightboxIndex > 0) { lightboxIndex--; renderLightbox(); }
+  });
+  document.getElementById("lightboxNext").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (lightboxIndex < lightboxPhotos.length - 1) { lightboxIndex++; renderLightbox(); }
+  });
+
+  function photoGalleryHtml(photos, i, altText) {
+    var thumbs = photos.map(function (src, pi) {
+      return '<div class="tip-photo-wrap"><img class="tip-photo" src="' + src + '" alt="' + altText + '" data-photo-view="' + pi + '">' +
+        '<button type="button" class="tip-photo-remove" data-photo-del="' + i + '" data-photo-idx="' + pi + '">제거</button></div>';
     }).join("");
-    card.querySelectorAll(".tip-item").forEach(function (el) {
-      var i = Number(el.dataset.i);
-      el.querySelector("[data-field]").addEventListener("input", function (e) {
-        state.tips[i].text = e.target.value;
+    var addHtml = photos.length < MAX_PHOTOS
+      ? '<label class="tip-photo-add">+ 사진 추가<span class="tip-photo-count">' + photos.length + '/' + MAX_PHOTOS + '</span><input type="file" accept="image/*" data-photo-add="' + i + '" style="display:none;"></label>'
+      : '';
+    return '<div class="tip-photo-row">' + thumbs + addHtml + '</div>';
+  }
+  function wirePhotoControls(el, i, arr, rerender, handleFile) {
+    var photoInput = el.querySelector("[data-photo-add]");
+    if (photoInput) {
+      photoInput.addEventListener("change", function (e) {
+        var file = e.target.files && e.target.files[0];
+        handleFile(i, file);
+        e.target.value = "";
+      });
+    }
+    el.querySelectorAll("[data-photo-view]").forEach(function (img) {
+      img.addEventListener("click", function () {
+        openLightbox(arr[i].photos, Number(img.getAttribute("data-photo-view")));
+      });
+    });
+    el.querySelectorAll("[data-photo-del]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var pi = Number(btn.getAttribute("data-photo-idx"));
+        arr[i].photos.splice(pi, 1);
+        save();
+        rerender();
+      });
+    });
+  }
+
+  function renderTips() {
+    var wrap = document.getElementById("tipsCategories");
+    wrap.innerHTML = state.tips.map(function (cat, ci) {
+      var itemsHtml = cat.items.length
+        ? cat.items.map(function (t, i) {
+            return '<div class="tip-item" data-i="' + i + '">' +
+              '<span class="tip-num">' + String(i + 1).padStart(2, "0") + '</span>' +
+              '<div class="tip-body">' +
+              '<textarea class="textarea" data-field="tip">' + escapeHtml(t.text) + '</textarea>' +
+              photoGalleryHtml(t.photos || [], i, "꿀팁 사진") +
+              '</div>' +
+              reorderBtnsHtml(i, cat.items.length, "item-") +
+              '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
+              '</div>';
+          }).join("")
+        : '<p class="packing-cat-empty">아직 담긴 꿀팁이 없어요.</p>';
+      return '<div class="card packing-cat" data-ci="' + ci + '">' +
+        '<div class="packing-cat-head">' +
+        '<input class="text-input" data-field="category" value="' + escapeHtml(cat.category) + '" maxlength="30">' +
+        reorderBtnsHtml(ci, state.tips.length, "cat-") +
+        '<button class="icon-btn" data-del-cat="' + ci + '" aria-label="카테고리 삭제">✕</button>' +
+        '</div>' +
+        itemsHtml +
+        '<button type="button" class="add-btn" data-cat-addtip="' + ci + '" style="margin-top:10px;">+ 꿀팁 추가</button>' +
+        '</div>';
+    }).join("") || '<p class="hint" style="margin:0;">아직 카테고리가 없어요. 아래에서 만들어보세요.</p>';
+
+    wrap.querySelectorAll(".packing-cat").forEach(function (catEl) {
+      var ci = Number(catEl.dataset.ci);
+      var cat = state.tips[ci];
+
+      catEl.querySelector('[data-field="category"]').addEventListener("input", function (e) {
+        cat.category = e.target.value;
         save();
       });
-      el.querySelector("[data-del]").addEventListener("click", function () {
-        state.tips.splice(i, 1);
+      catEl.querySelector("[data-del-cat]").addEventListener("click", function () {
+        if (cat.items.length && !confirm('"' + (cat.category || "이 카테고리") + '"에 담긴 ' + cat.items.length + '개 꿀팁도 함께 삭제됩니다. 계속할까요?')) return;
+        state.tips.splice(ci, 1);
         save();
         renderTips();
       });
-      var photoInput = el.querySelector("[data-photo-add]");
-      if (photoInput) {
-        photoInput.addEventListener("change", function (e) {
-          var file = e.target.files && e.target.files[0];
-          handleTipPhotoFile(i, file);
-          e.target.value = "";
+      catEl.querySelector("[data-cat-addtip]").addEventListener("click", function () {
+        cat.items.push({ text: "", photos: [] });
+        save();
+        renderTips();
+        var textareas = wrap.querySelectorAll('.packing-cat[data-ci="' + ci + '"] .tip-item .textarea');
+        var last = textareas[textareas.length - 1];
+        if (last) last.focus();
+      });
+
+      catEl.querySelectorAll(".tip-item").forEach(function (el) {
+        var i = Number(el.dataset.i);
+        el.querySelector("[data-field]").addEventListener("input", function (e) {
+          cat.items[i].text = e.target.value;
+          save();
         });
-      }
-      var photoDelBtn = el.querySelector("[data-photo-del]");
-      if (photoDelBtn) {
-        photoDelBtn.addEventListener("click", function () {
-          state.tips[i].photo = null;
+        el.querySelector("[data-del]").addEventListener("click", function () {
+          cat.items.splice(i, 1);
           save();
           renderTips();
         });
-      }
+        wirePhotoControls(el, i, cat.items, renderTips, function (idx, file) { handleTipPhotoFile(ci, idx, file); });
+      });
+      wireReorderBtns(catEl, cat.items, function () { save(); renderTips(); }, "item-");
     });
-    wireReorderBtns(card, state.tips, function () { save(); renderTips(); });
+    wireReorderBtns(wrap, state.tips, function () { save(); renderTips(); }, "cat-");
   }
-  document.getElementById("addTipBtn").addEventListener("click", function () {
-    state.tips.push({ text: "", photo: null });
+  document.getElementById("addTipCategoryBtn").addEventListener("click", function () {
+    state.tips.push({ category: "새 카테고리", items: [] });
     save();
     renderTips();
+    var inputs = document.querySelectorAll('#tipsCategories .packing-cat-head [data-field="category"]');
+    var last = inputs[inputs.length - 1];
+    if (last) { last.focus(); last.select(); }
   });
 
   /* ---------------- SHOPPING LIST ---------------- */
@@ -1971,10 +2126,6 @@ var firebaseConfig = {
       card.innerHTML = '<p class="hint" style="margin:0;">아직 담긴 항목이 없어요.</p>';
     } else {
       card.innerHTML = state.shopping.map(function (p, i) {
-        var photoHtml = p.photo
-          ? '<div class="tip-photo-wrap"><img class="tip-photo" src="' + p.photo + '" alt="쇼핑 항목 사진">' +
-            '<button type="button" class="tip-photo-remove" data-photo-del="' + i + '">사진 제거</button></div>'
-          : '<label class="tip-photo-add">+ 사진 추가<input type="file" accept="image/*" data-photo-add="' + i + '" style="display:none;"></label>';
         return '<div class="shopping-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
           '<div class="shopping-item-row">' +
           '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
@@ -1982,7 +2133,7 @@ var firebaseConfig = {
           reorderBtnsHtml(i, state.shopping.length) +
           '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
           '</div>' +
-          photoHtml +
+          photoGalleryHtml(p.photos || [], i, "쇼핑 항목 사진") +
           '</div>';
       }).join("");
     }
@@ -1998,22 +2149,7 @@ var firebaseConfig = {
         save();
         renderShopping();
       });
-      var photoInput = el.querySelector("[data-photo-add]");
-      if (photoInput) {
-        photoInput.addEventListener("change", function (e) {
-          var file = e.target.files && e.target.files[0];
-          handleShoppingPhotoFile(i, file);
-          e.target.value = "";
-        });
-      }
-      var photoDelBtn = el.querySelector("[data-photo-del]");
-      if (photoDelBtn) {
-        photoDelBtn.addEventListener("click", function () {
-          state.shopping[i].photo = null;
-          save();
-          renderShopping();
-        });
-      }
+      wirePhotoControls(el, i, state.shopping, renderShopping, handleShoppingPhotoFile);
     });
     wireReorderBtns(card, state.shopping, function () { save(); renderShopping(); });
   }
