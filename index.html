@@ -187,11 +187,11 @@
     background: transparent; border: none; color: var(--ink); padding: 3px 2px;
     font-family: 'Plex Mono', ui-monospace, monospace; font-weight: 600; font-size: 0.8rem;
   }
-  .hero-eyebrow-input, .hero-title-input, .hero-chip input[type="text"] {
+  .hero-eyebrow-input, .hero-title-input, .hero-chip input[type="number"] {
     background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
   }
-  .hero-eyebrow-input:hover, .hero-title-input:hover, .hero-chip input[type="text"]:hover { border-color: var(--color-border); }
-  .hero-eyebrow-input:focus, .hero-title-input:focus, .hero-chip input[type="text"]:focus {
+  .hero-eyebrow-input:hover, .hero-title-input:hover, .hero-chip input[type="number"]:hover { border-color: var(--color-border); }
+  .hero-eyebrow-input:focus, .hero-title-input:focus, .hero-chip input[type="number"]:focus {
     outline: none; border-color: var(--primary-strong); background: var(--surface);
   }
   .hero-eyebrow-input {
@@ -199,7 +199,9 @@
     color: var(--ink-faint); display: block; width: 100%; min-height: auto; padding: 2px 4px;
   }
   .hero-title-input { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); min-height: auto; padding: 2px 4px; flex: 1; min-width: 0; }
-  .hero-chip input[type="text"] { color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; min-height: auto; padding: 3px 4px; width: 68px; }
+  .hero-chip input[type="number"] {
+    color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; min-height: auto; padding: 3px 2px; width: 30px; text-align: right;
+  }
 
   /* ---------- BOTTOM NAV ---------- */
   .bottom-nav-wrap {
@@ -491,8 +493,8 @@
       <span class="dday mono" id="ddayBadge">D-day</span>
     </div>
     <div class="hero-chips">
-      <span class="hero-chip"><input type="text" id="heroNights" maxlength="16" aria-label="박수/일수"></span>
-      <span class="hero-chip"><input type="text" id="heroPeople" maxlength="16" aria-label="인원"></span>
+      <span class="hero-chip"><input type="number" id="heroNightsNum" min="0" max="90" aria-label="박수">박 <input type="number" id="heroDaysNum" min="1" max="90" aria-label="일수">일</span>
+      <span class="hero-chip"><input type="number" id="heroPeopleNum" min="1" max="30" aria-label="인원 수">인</span>
       <span class="hero-chip date-chip">출발일<input type="date" id="tripStart"></span>
     </div>
   </div>
@@ -526,13 +528,13 @@
       <p class="hint" style="margin-top:-8px;">환율은 직접 입력해 최신값으로 맞춰두세요. 아래 지출 기록에도 바로 반영돼요</p>
       <div class="fx-conv-row">
         <div>
-          <label class="field-label">원화 (KRW)</label>
-          <input type="number" class="num-input" id="fxKrw" placeholder="0">
+          <label class="field-label">동 (VND)</label>
+          <input type="number" class="num-input" id="fxVnd" placeholder="0">
         </div>
         <div class="swap">⇄</div>
         <div>
-          <label class="field-label">동 (VND)</label>
-          <input type="number" class="num-input" id="fxVnd" placeholder="0">
+          <label class="field-label">원화 (KRW)</label>
+          <input type="number" class="num-input" id="fxKrw" placeholder="0">
         </div>
       </div>
     </div>
@@ -696,8 +698,9 @@ var firebaseConfig = {
     return {
       tripName: "나트랑 여행",
       tripSubtitle: "VIỆT NAM · NHA TRANG",
-      tripNights: "3박 5일",
-      tripPeople: "2인",
+      tripNightsNum: 3,
+      tripDaysNum: 5,
+      tripPeopleNum: 2,
       tripStart: defaultTripStart(),
       activeDay: 0,
       activeBudgetDay: 0,
@@ -824,6 +827,19 @@ var firebaseConfig = {
   function normalizeState(parsed, d) {
     d = d || defaultState();
     for (var k in d) { if (!(k in parsed)) parsed[k] = d[k]; }
+    if (typeof parsed.tripDaysNum !== "number" || !parsed.tripDaysNum) {
+      parsed.tripDaysNum = Array.isArray(parsed.days) && parsed.days.length ? parsed.days.length : 5;
+    }
+    if (typeof parsed.tripNightsNum !== "number") {
+      var oldNights = typeof parsed.tripNights === "string" ? parseInt(parsed.tripNights, 10) : NaN;
+      parsed.tripNightsNum = isFinite(oldNights) ? oldNights : Math.max(0, parsed.tripDaysNum - 1);
+    }
+    if (typeof parsed.tripPeopleNum !== "number" || !parsed.tripPeopleNum) {
+      var oldPeople = typeof parsed.tripPeople === "string" ? parseInt(parsed.tripPeople, 10) : NaN;
+      parsed.tripPeopleNum = isFinite(oldPeople) && oldPeople > 0 ? oldPeople : 2;
+    }
+    delete parsed.tripNights;
+    delete parsed.tripPeople;
     (parsed.budget || []).forEach(function (row) {
       if (typeof row.budget === "number" || typeof row.actual === "number") {
         row.budget = [Number(row.budget) || 0, 0];
@@ -1158,9 +1174,7 @@ var firebaseConfig = {
 
   [
     ["heroEyebrow", "tripSubtitle"],
-    ["heroTitle", "tripName"],
-    ["heroNights", "tripNights"],
-    ["heroPeople", "tripPeople"]
+    ["heroTitle", "tripName"]
   ].forEach(function (pair) {
     var el = document.getElementById(pair[0]);
     var key = pair[1];
@@ -1170,6 +1184,80 @@ var firebaseConfig = {
       save();
       if (key === "tripName") document.title = (state.tripName || "여행 플래너") + " 플래너";
     });
+  });
+
+  function syncDaysCount(newCount) {
+    newCount = Math.max(1, Math.min(90, Math.floor(newCount) || 1));
+    var cur = state.days.length;
+    if (newCount === cur) return true;
+    if (newCount > cur) {
+      for (var i = cur; i < newCount; i++) {
+        state.days.push({ label: "", items: [], expenses: [] });
+      }
+      return true;
+    }
+    var removed = state.days.slice(newCount);
+    var hasData = removed.some(function (d) { return (d.items && d.items.length) || (d.expenses && d.expenses.length); });
+    if (hasData && !confirm("DAY " + (newCount + 1) + "부터 " + cur + "까지 입력된 일정/지출이 삭제됩니다. 계속할까요?")) {
+      return false;
+    }
+    state.days = state.days.slice(0, newCount);
+    if (state.activeDay >= newCount) state.activeDay = newCount - 1;
+    if (state.activeBudgetDay >= newCount) state.activeBudgetDay = newCount - 1;
+    return true;
+  }
+
+  function syncPeopleCount(newCount) {
+    newCount = Math.max(1, Math.min(30, Math.floor(newCount) || 1));
+    if (newCount < state.tripPeopleNum) {
+      var hasData = state.budget.some(function (row) {
+        if (!row.split) return false;
+        for (var p = newCount; p < row.budget.length; p++) {
+          if ((Number(row.budget[p]) || 0) > 0 || (Number(row.actual[p]) || 0) > 0) return true;
+        }
+        return false;
+      });
+      if (hasData && !confirm("인원을 줄이면 예산의 " + (newCount + 1) + "번째 이후 인원 데이터가 삭제됩니다. 계속할까요?")) {
+        return false;
+      }
+    }
+    state.budget.forEach(function (row) {
+      if (row.split) resizePersonArrays(row, newCount);
+    });
+    return true;
+  }
+
+  var heroNightsInput = document.getElementById("heroNightsNum");
+  var heroDaysInput = document.getElementById("heroDaysNum");
+  var heroPeopleInput = document.getElementById("heroPeopleNum");
+  heroNightsInput.value = state.tripNightsNum;
+  heroDaysInput.value = state.tripDaysNum;
+  heroPeopleInput.value = state.tripPeopleNum;
+
+  heroNightsInput.addEventListener("change", function () {
+    var v = Number(heroNightsInput.value);
+    state.tripNightsNum = isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+    heroNightsInput.value = state.tripNightsNum;
+    save();
+  });
+
+  heroDaysInput.addEventListener("change", function () {
+    var v = Number(heroDaysInput.value);
+    if (!v || v < 1) { heroDaysInput.value = state.tripDaysNum; return; }
+    var prevCount = state.tripDaysNum;
+    if (!syncDaysCount(v)) { heroDaysInput.value = prevCount; return; }
+    state.tripDaysNum = Math.floor(v);
+    save();
+    renderAll();
+  });
+
+  heroPeopleInput.addEventListener("change", function () {
+    var v = Number(heroPeopleInput.value);
+    if (!v || v < 1) { heroPeopleInput.value = state.tripPeopleNum; return; }
+    if (!syncPeopleCount(v)) { heroPeopleInput.value = state.tripPeopleNum; return; }
+    state.tripPeopleNum = Math.floor(v);
+    save();
+    renderAll();
   });
 
   function renderDday() {
@@ -1252,10 +1340,20 @@ var firebaseConfig = {
   }
 
   /* ---------------- BUDGET (categories) ---------------- */
+  function resizePersonArrays(row, n) {
+    n = Math.max(1, n || 2);
+    while (row.budget.length < n) row.budget.push(0);
+    while (row.actual.length < n) row.actual.push(0);
+    while (row.personNames.length < n) row.personNames.push("인원" + (row.personNames.length + 1));
+    if (row.budget.length > n) row.budget = row.budget.slice(0, n);
+    if (row.actual.length > n) row.actual = row.actual.slice(0, n);
+    if (row.personNames.length > n) row.personNames = row.personNames.slice(0, n);
+  }
+
   function rowTotal(row, field) {
     var v = row[field];
     if (!row.split) return Number(v[0]) || 0;
-    return (Number(v[0]) || 0) + (Number(v[1]) || 0);
+    return v.reduce(function (s, x) { return s + (Number(x) || 0); }, 0);
   }
   function budgetStatus(b, a) {
     if (b <= 0) return a > 0 ? "critical" : "good";
@@ -1267,11 +1365,13 @@ var firebaseConfig = {
   var statusLabel = { good: "예산 내", warning: "임박", critical: "초과" };
 
   function personRows(row) {
+    var indices = [];
+    for (var i = 0; i < row.budget.length; i++) indices.push(i);
     return '<div class="person-block">' +
       '<div class="person-cols">' +
       '<span></span><span class="col-head">예산</span><span class="col-head">실지출</span>' +
       '</div>' +
-      [0, 1].map(function (p) {
+      indices.map(function (p) {
         return '<div class="person-cols">' +
           '<input class="plabel-input" data-field="personName" data-person="' + p + '" value="' + escapeHtml(row.personNames[p] || "") + '" placeholder="인원 ' + (p + 1) + '">' +
           '<input type="number" class="num-input" data-field="budget" data-person="' + p + '" value="' + row.budget[p] + '">' +
@@ -1340,7 +1440,9 @@ var firebaseConfig = {
         });
       });
       el.querySelector("[data-split]").addEventListener("click", function () {
-        state.budget[i].split = !state.budget[i].split;
+        var row = state.budget[i];
+        row.split = !row.split;
+        if (row.split) resizePersonArrays(row, state.tripPeopleNum || 2);
         save();
         renderBudget();
       });
@@ -1386,7 +1488,9 @@ var firebaseConfig = {
   }
 
   document.getElementById("addCategoryBtn").addEventListener("click", function () {
-    state.budget.push({ name: "새 항목", split: false, budget: [0, 0], actual: [0, 0], personNames: ["인원1", "인원2"] });
+    var n = state.tripPeopleNum || 2;
+    var names = []; for (var p = 0; p < n; p++) names.push("인원" + (p + 1));
+    state.budget.push({ name: "새 항목", split: false, budget: new Array(n).fill(0), actual: new Array(n).fill(0), personNames: names });
     save();
     renderBudget();
   });
@@ -1513,7 +1617,7 @@ var firebaseConfig = {
   }
 
   function convertLabel(e) {
-    if (e.currency === "VND") return "≈ ₩" + fmt(toKRW(e.amount, "VND"));
+    if (e.currency === "VND") return "≈ ₩" + fmt(Math.ceil(toKRW(e.amount, "VND")));
     return "≈ " + fmt((Number(e.amount) || 0) * (Number(state.fxRate) || 0)) + "₫";
   }
   function updateExpenseRowConversion(el, entry) {
@@ -1963,8 +2067,9 @@ var firebaseConfig = {
     tripStartInput.value = state.tripStart;
     document.getElementById("heroEyebrow").value = state.tripSubtitle;
     document.getElementById("heroTitle").value = state.tripName;
-    document.getElementById("heroNights").value = state.tripNights;
-    document.getElementById("heroPeople").value = state.tripPeople;
+    document.getElementById("heroNightsNum").value = state.tripNightsNum;
+    document.getElementById("heroDaysNum").value = state.tripDaysNum;
+    document.getElementById("heroPeopleNum").value = state.tripPeopleNum;
     document.title = (state.tripName || "여행 플래너") + " 플래너";
     renderDday();
     renderDayRow();
