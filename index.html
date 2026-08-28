@@ -433,7 +433,13 @@
   .tip-item:first-child { border-top: none; }
   .tip-num { font-family: 'Plex Mono', ui-monospace, monospace; color: var(--primary-strong); font-weight: 700; font-size: 0.8rem; padding-top: 12px; width: 20px; flex-shrink: 0; }
   .tip-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .tip-photo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .tip-photo-details { width: 100%; }
+  .tip-photo-summary {
+    cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--ink-soft);
+    list-style: revert; padding: 2px 0; width: fit-content;
+  }
+  .tip-photo-summary::marker { color: var(--ink-faint); }
+  .tip-photo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; margin-top: 8px; }
   .tip-photo-wrap { position: relative; display: inline-block; }
   .tip-photo { width: 92px; height: 92px; max-width: 92px; max-height: 92px; border-radius: var(--radius-md); display: block; object-fit: cover; }
   .tip-photo-remove {
@@ -475,7 +481,7 @@
   .shopping-item-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary-strong); flex-shrink: 0; }
   .shopping-item-row .clabel { flex: 1; font-size: 0.92rem; }
   .shopping-item.checked .shopping-item-row .clabel { text-decoration: line-through; color: var(--ink-faint); }
-  .shopping-item .tip-photo-row { margin-top: 8px; }
+  .shopping-item .tip-photo-details { margin-top: 8px; display: block; }
 
   .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .book-grid .full { grid-column: 1 / -1; }
@@ -2009,7 +2015,8 @@ var firebaseConfig = {
     if (lightboxIndex < lightboxPhotos.length - 1) { lightboxIndex++; renderLightbox(); }
   });
 
-  function photoGalleryHtml(photos, i, altText) {
+  var expandedGalleries = new WeakSet();
+  function photoGalleryHtml(photos, i, altText, item) {
     var thumbs = photos.map(function (src, pi) {
       return '<div class="tip-photo-wrap"><img class="tip-photo" src="' + src + '" alt="' + altText + '" data-photo-view="' + pi + '">' +
         '<button type="button" class="tip-photo-remove" data-photo-del="' + i + '" data-photo-idx="' + pi + '">제거</button></div>';
@@ -2017,9 +2024,19 @@ var firebaseConfig = {
     var addHtml = photos.length < MAX_PHOTOS
       ? '<label class="tip-photo-add">+ 사진 추가<span class="tip-photo-count">' + photos.length + '/' + MAX_PHOTOS + '</span><input type="file" accept="image/*" data-photo-add="' + i + '" style="display:none;"></label>'
       : '';
-    return '<div class="tip-photo-row">' + thumbs + addHtml + '</div>';
+    var summaryText = photos.length ? "사진 " + photos.length + "장" : "사진 추가";
+    return '<details class="tip-photo-details"' + (expandedGalleries.has(item) ? " open" : "") + '>' +
+      '<summary class="tip-photo-summary">' + summaryText + '</summary>' +
+      '<div class="tip-photo-row">' + thumbs + addHtml + '</div>' +
+      '</details>';
   }
   function wirePhotoControls(el, i, arr, rerender, handleFile) {
+    var details = el.querySelector("details.tip-photo-details");
+    if (details) {
+      details.addEventListener("toggle", function () {
+        if (details.open) expandedGalleries.add(arr[i]); else expandedGalleries.delete(arr[i]);
+      });
+    }
     var photoInput = el.querySelector("[data-photo-add]");
     if (photoInput) {
       photoInput.addEventListener("change", function (e) {
@@ -2052,7 +2069,7 @@ var firebaseConfig = {
               '<span class="tip-num">' + String(i + 1).padStart(2, "0") + '</span>' +
               '<div class="tip-body">' +
               '<textarea class="textarea" data-field="tip">' + escapeHtml(t.text) + '</textarea>' +
-              photoGalleryHtml(t.photos || [], i, "꿀팁 사진") +
+              photoGalleryHtml(t.photos || [], i, "꿀팁 사진", t) +
               '</div>' +
               reorderBtnsHtml(i, cat.items.length, "item-") +
               '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
@@ -2133,7 +2150,7 @@ var firebaseConfig = {
           reorderBtnsHtml(i, state.shopping.length) +
           '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
           '</div>' +
-          photoGalleryHtml(p.photos || [], i, "쇼핑 항목 사진") +
+          photoGalleryHtml(p.photos || [], i, "쇼핑 항목 사진", p) +
           '</div>';
       }).join("");
     }
