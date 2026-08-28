@@ -2286,9 +2286,15 @@ var firebaseConfig = {
         var cat = btn.getAttribute("data-booking-add");
         var fields = {};
         BOOKING_TEMPLATES[cat].forEach(function (f) { fields[f.key] = ""; });
-        state.booking.unshift({ category: cat, fields: fields });
+        state.booking.push({ category: cat, fields: fields });
         save();
         renderBooking();
+        var newEntry = wrap.querySelector('.booking-entry[data-bi="' + (state.booking.length - 1) + '"]');
+        if (newEntry) {
+          newEntry.scrollIntoView({ behavior: "smooth", block: "center" });
+          var firstInput = newEntry.querySelector("[data-booking-field]");
+          if (firstInput) firstInput.focus();
+        }
       });
     });
     wrap.querySelectorAll(".booking-entry").forEach(function (el) {
