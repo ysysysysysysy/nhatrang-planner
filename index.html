@@ -242,6 +242,13 @@
   .section-title { display: flex; align-items: baseline; gap: 10px; margin: var(--spacing-3xl) 0 var(--spacing-md); }
   .section-title:first-child { margin-top: 0; }
   .section-title h2 { font-size: 1.1rem; font-weight: 700; }
+  .day-label-input {
+    flex: 1; min-width: 0; font-size: 1.1rem; font-weight: 700; color: var(--ink);
+    background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+    padding: 2px 4px; min-height: auto;
+  }
+  .day-label-input:hover { border-color: var(--color-border); }
+  .day-label-input:focus { outline: none; border-color: var(--primary-strong); background: var(--surface); }
   .card {
     background: var(--surface); border: 1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: var(--spacing-xl) var(--spacing-lg);
@@ -562,18 +569,15 @@
 
     <div class="section-title"><h2>환율 계산기</h2></div>
     <div class="card fx-card">
-      <div class="fx-rate-row" style="margin-bottom:2px; flex-wrap:wrap;">
-        <label class="field-label" style="margin:0;">현지 통화</label>
-        <select class="text-input" id="localCurrencySelect" style="width:auto; min-width:130px;"></select>
-        <input type="text" class="text-input" id="localCurrencyCustom" maxlength="4" style="width:80px; text-transform:uppercase; display:none;" placeholder="코드 입력">
-      </div>
-      <p class="hint" style="margin:0 0 6px;">다른 나라 여행이면 여기서 통화만 바꿔주세요. 목록에 없으면 "기타"를 선택해 직접 입력할 수 있어요</p>
-      <div class="fx-rate-row">
+      <div class="fx-rate-row" style="flex-wrap:wrap;">
+        <select class="text-input" id="localCurrencySelect" style="width:auto; min-width:110px;"></select>
+        <input type="text" class="text-input" id="localCurrencyCustom" maxlength="4" style="width:70px; text-transform:uppercase; display:none;" placeholder="코드">
+        <span style="color:var(--ink-faint);">·</span>
         <span>1 KRW =</span>
-        <input type="number" class="num-input" id="fxRate" step="0.01" style="width:100px;">
+        <input type="number" class="num-input" id="fxRate" step="0.01" style="width:90px;">
         <span id="fxRateUnit">VND</span>
       </div>
-      <p class="hint" style="margin-top:-8px;">환율은 직접 입력해 최신값으로 맞춰두세요. 아래 지출 기록에도 바로 반영돼요</p>
+      <p class="hint" style="margin-top:-2px;">목록에 없는 통화는 "기타"를 선택해 직접 입력하세요. 환율은 직접 입력해 최신값으로 맞춰두면 아래 지출 기록에도 바로 반영돼요</p>
       <div class="fx-conv-row">
         <div>
           <label class="field-label" id="fxLocalLabel">동 (VND)</label>
@@ -797,57 +801,57 @@ var firebaseConfig = {
       activeBudgetDay: 0,
       days: [
         {
-          label: "인천 출발 & 나트랑 입국",
+          label: "출국 및 도착",
           items: [
-            { time: "09:00", title: "인천공항 T2 집결, 출국 수속", memo: "나트랑 직항편 이용" },
-            { time: "13:30", title: "깜란 국제공항 도착", memo: "짐 수령 후 그랩(Grab)으로 시내 이동" },
-            { time: "15:00", title: "호텔 체크인 & 휴식", memo: "" },
-            { time: "18:30", title: "냐짱 비치 산책 & 저녁", memo: "Yen's Restaurant 근처" },
-            { time: "20:30", title: "루이지애나 브루하우스", memo: "해변가 수제맥주 한 잔" }
+            { time: "09:00", title: "공항 집결, 출국 수속", memo: "온라인 체크인 미리 해두면 편해요" },
+            { time: "13:00", title: "현지 공항 도착", memo: "짐 수령 후 숙소로 이동" },
+            { time: "15:00", title: "숙소 체크인 & 휴식", memo: "" },
+            { time: "18:00", title: "숙소 근처 산책 & 저녁 식사", memo: "" },
+            { time: "20:00", title: "야경 감상", memo: "" }
           ],
           expenses: []
         },
         {
-          label: "빈펄랜드 & 케이블카",
+          label: "관광 & 액티비티",
           items: [
-            { time: "08:30", title: "조식 후 케이블카 선착장 이동", memo: "" },
-            { time: "09:30", title: "빈펄랜드 케이블카 탑승", memo: "워터파크·놀이공원 자유이용권" },
-            { time: "12:30", title: "빈펄랜드 내 푸드코트 점심", memo: "" },
-            { time: "17:00", title: "케이블카로 시내 복귀", memo: "" },
-            { time: "19:30", title: "냐짱 나이트마켓(Cho Dam)", memo: "길거리 음식 & 기념품" }
+            { time: "09:00", title: "주요 관광지 방문", memo: "" },
+            { time: "12:00", title: "현지 맛집에서 점심", memo: "" },
+            { time: "14:00", title: "액티비티 또는 체험", memo: "" },
+            { time: "17:00", title: "시내로 이동", memo: "" },
+            { time: "19:00", title: "야시장 또는 로컬 거리 구경", memo: "" }
           ],
           expenses: []
         },
         {
-          label: "포나가르 & 머드베스",
+          label: "근교 나들이 & 휴식",
           items: [
-            { time: "08:00", title: "포나가르 참탑 방문", memo: "참파왕국 유적, 오전 추천" },
-            { time: "09:30", title: "혼쫑곶(Hon Chong) 전망대", memo: "" },
-            { time: "11:00", title: "아이리조트 머드온천", memo: "머드팩 + 미네랄 풀" },
-            { time: "14:00", title: "리조트 내 점심", memo: "" },
-            { time: "19:00", title: "세일링 클럽 선셋 디너", memo: "예약 추천" }
+            { time: "09:00", title: "근교 명소 방문", memo: "" },
+            { time: "11:00", title: "전망 좋은 카페", memo: "" },
+            { time: "14:00", title: "점심 식사", memo: "" },
+            { time: "17:00", title: "스파 또는 마사지", memo: "" },
+            { time: "19:00", title: "야경 명소에서 저녁", memo: "예약 추천" }
           ],
           expenses: []
         },
         {
-          label: "자유일정 & 쇼핑",
+          label: "쇼핑 & 자유일정",
           items: [
-            { time: "10:00", title: "빈컴 플라자 쇼핑", memo: "" },
-            { time: "12:00", title: "런치 - Lanterns Restaurant", memo: "현지 가정식" },
-            { time: "14:00", title: "스파 & 마사지", memo: "" },
-            { time: "17:00", title: "짐 정리 & 기념품 구매", memo: "" },
-            { time: "19:00", title: "해산물 시장에서 마지막 저녁", memo: "" }
+            { time: "10:00", title: "쇼핑몰 또는 시장 구경", memo: "" },
+            { time: "12:00", title: "현지 맛집 탐방", memo: "" },
+            { time: "14:00", title: "자유 일정", memo: "" },
+            { time: "17:00", title: "기념품 구매", memo: "" },
+            { time: "19:00", title: "마지막 밤 저녁 식사", memo: "" }
           ],
           expenses: []
         },
         {
           label: "체크아웃 & 귀국",
           items: [
-            { time: "10:00", title: "호텔 체크아웃", memo: "레이트 체크아웃 요청해보기" },
-            { time: "11:00", title: "짐 보관 후 근교 카페 브런치", memo: "" },
-            { time: "15:00", title: "깜란 공항으로 이동", memo: "" },
-            { time: "18:00", title: "나트랑 출발", memo: "현지 시간 기준" },
-            { time: "06:00", title: "인천 도착", memo: "야간 항공편, 한국 시간 기준 익일" }
+            { time: "10:00", title: "숙소 체크아웃", memo: "레이트 체크아웃 요청해보기" },
+            { time: "11:00", title: "짐 보관 후 근교 카페", memo: "" },
+            { time: "15:00", title: "공항으로 이동", memo: "" },
+            { time: "18:00", title: "현지 출발", memo: "현지 시간 기준" },
+            { time: "06:00", title: "한국 도착", memo: "야간 항공편 기준, 다음날 도착일 수 있어요" }
           ],
           expenses: []
         }
@@ -1465,7 +1469,10 @@ var firebaseConfig = {
   function renderDayContent() {
     var wrap = document.getElementById("dayContent");
     var day = state.days[state.activeDay];
-    var html = '<div class="section-title"><h2>DAY ' + (state.activeDay + 1) + ' · ' + escapeHtml(day.label) + '</h2></div>';
+    var html = '<div class="section-title">' +
+      '<h2>DAY ' + (state.activeDay + 1) + ' ·</h2>' +
+      '<input class="text-input day-label-input" id="dayLabelInput" placeholder="이 날의 제목을 적어보세요" value="' + escapeHtml(day.label) + '">' +
+      '</div>';
     html += '<button class="add-btn" id="addItemBtn" style="margin-bottom:12px;">+ 일정 추가</button>';
     html += '<div class="card"><div class="timeline">';
     html += day.items.map(function (item, i) {
@@ -1481,6 +1488,11 @@ var firebaseConfig = {
     }).join("");
     html += '</div></div>';
     wrap.innerHTML = html;
+
+    document.getElementById("dayLabelInput").addEventListener("input", function (e) {
+      day.label = e.target.value;
+      save();
+    });
 
     wrap.querySelectorAll(".tl-item").forEach(function (el) {
       var i = Number(el.dataset.i);
@@ -1734,7 +1746,7 @@ var firebaseConfig = {
     renderExpenseTotalText();
 
     if (day.expenses.length === 0) {
-      listEl.innerHTML = '<p class="expense-empty">아직 기록된 지출이 없어요.<br>아래 버튼으로 첫 지출을 기록해보세요!</p>';
+      listEl.innerHTML = '<p class="expense-empty">아직 기록된 지출이 없어요.<br>위 버튼으로 첫 지출을 기록해보세요!</p>';
       return;
     }
 
