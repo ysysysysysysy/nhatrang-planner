@@ -140,14 +140,23 @@
     margin-top: 8px; background: var(--surface); border: 1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: var(--spacing-md);
   }
-  .trip-row {
-    display: flex; justify-content: space-between; align-items: center; width: 100%;
-    background: none; border: none; border-top: 1px solid var(--color-border);
-    padding: 10px 4px; font-size: 0.86rem; color: var(--ink); cursor: pointer; text-align: left;
+  .trip-row-wrap {
+    display: flex; align-items: center; gap: 6px;
+    border-top: 1px solid var(--color-border);
   }
-  .trip-row:first-child { border-top: none; }
-  .trip-row.active { color: var(--primary-strong); font-weight: 700; }
+  .trip-row-wrap:first-child { border-top: none; }
+  .trip-row-main {
+    display: flex; justify-content: space-between; align-items: center; flex: 1; min-width: 0;
+    background: none; border: none; padding: 10px 4px; font-size: 0.86rem; color: var(--ink); cursor: pointer; text-align: left;
+  }
+  .trip-row-wrap.active .trip-row-main { color: var(--primary-strong); font-weight: 700; }
+  .trip-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .trip-row-date { font-size: 0.74rem; color: var(--ink-faint); flex-shrink: 0; margin-left: 10px; }
+  .trip-row-del {
+    background: none; border: none; color: var(--ink-faint); cursor: pointer; flex-shrink: 0;
+    width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;
+  }
+  .trip-row-del:hover { color: var(--critical); }
 
   /* ---------- HERO ---------- */
   .hero { padding: var(--spacing-xl) 0 var(--spacing-lg); }
@@ -657,7 +666,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ---------------- FIREBASE 설정 (직접 채워넣으세요) ----------------
    Firebase 콘솔 > 프로젝트 설정 > 내 앱 > 웹앱 설정에서
@@ -982,26 +991,48 @@ var firebaseConfig = {
         listEl.innerHTML = '<p class="hint" style="margin:0;">저장된 여행이 없어요.</p>';
         return;
       }
+      var ids = [];
       var rows = [];
       snap.forEach(function (docSnap) {
         var d = docSnap.data();
         var name = (d.data && d.data.tripName) || docSnap.id;
         var updated = d.updatedAt ? new Date(d.updatedAt) : null;
         var dateText = updated ? updated.getFullYear() + "." + String(updated.getMonth() + 1).padStart(2, "0") + "." + String(updated.getDate()).padStart(2, "0") : "";
+        ids.push(docSnap.id);
         rows.push(
-          '<button type="button" class="trip-row' + (docSnap.id === currentTripId ? " active" : "") + '" data-trip-id="' + escapeHtml(docSnap.id) + '">' +
+          '<div class="trip-row-wrap' + (docSnap.id === currentTripId ? " active" : "") + '">' +
+          '<button type="button" class="trip-row-main" data-trip-id="' + escapeHtml(docSnap.id) + '">' +
           '<span class="trip-row-name">' + escapeHtml(name) + '</span>' +
           '<span class="trip-row-date mono">' + dateText + '</span>' +
-          '</button>'
+          '</button>' +
+          '<button type="button" class="trip-row-del" data-trip-del="' + escapeHtml(docSnap.id) + '" aria-label="여행 삭제">✕</button>' +
+          '</div>'
         );
       });
       listEl.innerHTML = rows.join("");
-      listEl.querySelectorAll(".trip-row").forEach(function (btn) {
+      listEl.querySelectorAll(".trip-row-main").forEach(function (btn) {
         btn.addEventListener("click", function () {
           var id = btn.getAttribute("data-trip-id");
           if (id === currentTripId) { document.getElementById("tripSwitchPanel").style.display = "none"; return; }
           switchToTrip(id);
           document.getElementById("tripSwitchPanel").style.display = "none";
+        });
+      });
+      listEl.querySelectorAll(".trip-row-del").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-trip-del");
+          if (!confirm('"' + id + '" 여행을 삭제할까요? 되돌릴 수 없어요.')) return;
+          deleteDoc(doc(db, "trips", id)).then(function () {
+            if (id === currentTripId) {
+              var remaining = ids.filter(function (x) { return x !== id; });
+              var nextId = remaining.length ? remaining[0] : ("trip_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+              switchToTrip(nextId);
+            } else {
+              renderTripPicker();
+            }
+          }).catch(function () {
+            alert("삭제에 실패했어요. 잠시 후 다시 시도해주세요.");
+          });
         });
       });
     }).catch(function () {
