@@ -130,6 +130,25 @@
 
   .wrap { max-width: 480px; margin: 0 auto; padding: 0 var(--page-padding) calc(92px + env(safe-area-inset-bottom)); }
 
+  /* ---------- TRIP SWITCH ---------- */
+  .trip-switch-bar { display: flex; gap: 8px; padding-top: var(--spacing-md); }
+  .trip-switch-btn {
+    background: var(--surface-sunk); border: none; border-radius: var(--radius-lg);
+    padding: 7px 13px; font-size: 0.76rem; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+  }
+  .trip-switch-panel {
+    margin-top: 8px; background: var(--surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: var(--spacing-md);
+  }
+  .trip-row {
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+    background: none; border: none; border-top: 1px solid var(--color-border);
+    padding: 10px 4px; font-size: 0.86rem; color: var(--ink); cursor: pointer; text-align: left;
+  }
+  .trip-row:first-child { border-top: none; }
+  .trip-row.active { color: var(--primary-strong); font-weight: 700; }
+  .trip-row-date { font-size: 0.74rem; color: var(--ink-faint); flex-shrink: 0; margin-left: 10px; }
+
   /* ---------- HERO ---------- */
   .hero { padding: var(--spacing-xl) 0 var(--spacing-lg); }
   .hero-eyebrow {
@@ -447,6 +466,14 @@
 
 <div class="wrap">
 
+  <div class="trip-switch-bar">
+    <button type="button" class="trip-switch-btn" id="tripSwitchBtn">📁 여행 목록</button>
+    <button type="button" class="trip-switch-btn" id="newTripBtn">+ 새 여행</button>
+  </div>
+  <div class="trip-switch-panel" id="tripSwitchPanel" style="display:none;">
+    <div id="tripSwitchList"></div>
+  </div>
+
   <div class="hero">
     <input class="hero-eyebrow-input" id="heroEyebrow" maxlength="60" aria-label="여행지 표기">
     <div class="hero-head">
@@ -630,7 +657,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ---------------- FIREBASE 설정 (직접 채워넣으세요) ----------------
    Firebase 콘솔 > 프로젝트 설정 > 내 앱 > 웹앱 설정에서
@@ -853,9 +880,14 @@ var firebaseConfig = {
     } catch (e) { return Math.random().toString(36).slice(2); }
   })();
 
+  var db = null;
   var tripDocRef = null;
+  var currentTripId = null;
+  var unsubscribeSnapshot = null;
   var pendingRemoteState = null;
   var firebaseReady = false;
+  var LAST_TRIP_KEY = "nhatrang-planner-last-trip";
+  var DEFAULT_TRIP_ID = "nhatrang";
 
   function isTyping() {
     var el = document.activeElement;
@@ -887,9 +919,93 @@ var firebaseConfig = {
   });
 
   function pushToFirestore() {
-    if (!firebaseReady) return;
+    if (!firebaseReady || !tripDocRef) return;
     setDoc(tripDocRef, { data: state, updatedBy: CLIENT_ID, updatedAt: Date.now() }).catch(function () {
       setSyncNote("동기화 실패 (연결 확인 필요)");
+    });
+  }
+
+  function getTripIdFromUrl() {
+    try { return new URLSearchParams(location.search).get("trip") || null; } catch (e) { return null; }
+  }
+  function setTripIdInUrl(tripId) {
+    try {
+      var url = new URL(location.href);
+      url.searchParams.set("trip", tripId);
+      history.replaceState(null, "", url);
+    } catch (e) {}
+  }
+  function getLastTripId() {
+    try { return localStorage.getItem(LAST_TRIP_KEY); } catch (e) { return null; }
+  }
+  function setLastTripId(id) {
+    try { localStorage.setItem(LAST_TRIP_KEY, id); } catch (e) {}
+  }
+  function resolveInitialTripId() {
+    return getTripIdFromUrl() || getLastTripId() || DEFAULT_TRIP_ID;
+  }
+
+  function switchToTrip(tripId) {
+    currentTripId = tripId;
+    setLastTripId(tripId);
+    setTripIdInUrl(tripId);
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    tripDocRef = doc(db, "trips", tripId);
+    setSyncNote("불러오는 중…");
+    return getDoc(tripDocRef).then(function (snap) {
+      firebaseReady = true;
+      if (snap.exists() && snap.data() && snap.data().data) {
+        applyRemoteState(snap.data().data, "불러옴");
+      } else {
+        state = defaultState();
+        renderAll();
+        pushToFirestore();
+        setSyncNote("새 여행으로 시작해요");
+      }
+      unsubscribeSnapshot = onSnapshot(tripDocRef, function (snap2) {
+        if (!snap2.exists()) return;
+        var payload = snap2.data();
+        if (!payload || payload.updatedBy === CLIENT_ID) return;
+        if (isTyping()) { pendingRemoteState = payload.data; return; }
+        applyRemoteState(payload.data, "동행자가 방금 수정함");
+      });
+      renderTripPicker();
+    });
+  }
+
+  function renderTripPicker() {
+    var listEl = document.getElementById("tripSwitchList");
+    if (!listEl || !db) return;
+    listEl.innerHTML = '<p class="hint" style="margin:0;">불러오는 중…</p>';
+    getDocs(query(collection(db, "trips"), orderBy("updatedAt", "desc"))).then(function (snap) {
+      if (snap.empty) {
+        listEl.innerHTML = '<p class="hint" style="margin:0;">저장된 여행이 없어요.</p>';
+        return;
+      }
+      var rows = [];
+      snap.forEach(function (docSnap) {
+        var d = docSnap.data();
+        var name = (d.data && d.data.tripName) || docSnap.id;
+        var updated = d.updatedAt ? new Date(d.updatedAt) : null;
+        var dateText = updated ? updated.getFullYear() + "." + String(updated.getMonth() + 1).padStart(2, "0") + "." + String(updated.getDate()).padStart(2, "0") : "";
+        rows.push(
+          '<button type="button" class="trip-row' + (docSnap.id === currentTripId ? " active" : "") + '" data-trip-id="' + escapeHtml(docSnap.id) + '">' +
+          '<span class="trip-row-name">' + escapeHtml(name) + '</span>' +
+          '<span class="trip-row-date mono">' + dateText + '</span>' +
+          '</button>'
+        );
+      });
+      listEl.innerHTML = rows.join("");
+      listEl.querySelectorAll(".trip-row").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-trip-id");
+          if (id === currentTripId) { document.getElementById("tripSwitchPanel").style.display = "none"; return; }
+          switchToTrip(id);
+          document.getElementById("tripSwitchPanel").style.display = "none";
+        });
+      });
+    }).catch(function () {
+      listEl.innerHTML = '<p class="hint" style="margin:0;">여행 목록을 불러오지 못했어요.</p>';
     });
   }
 
@@ -898,32 +1014,30 @@ var firebaseConfig = {
       setSyncNote("Firebase 설정 필요 (로컬 저장만 됨)");
       return;
     }
-    var db, app;
     try {
-      app = initializeApp(firebaseConfig);
+      var app = initializeApp(firebaseConfig);
       db = getFirestore(app);
-      tripDocRef = doc(db, "trips", "nhatrang");
     } catch (e) {
       setSyncNote("Firebase 초기화 실패");
       return;
     }
-
-    getDoc(tripDocRef).then(function (snap) {
-      firebaseReady = true;
-      if (snap.exists() && snap.data() && snap.data().data) {
-        applyRemoteState(snap.data().data, "불러옴");
-      } else {
-        pushToFirestore();
-      }
-      onSnapshot(tripDocRef, function (snap2) {
-        if (!snap2.exists()) return;
-        var payload = snap2.data();
-        if (!payload || payload.updatedBy === CLIENT_ID) return;
-        if (isTyping()) { pendingRemoteState = payload.data; return; }
-        applyRemoteState(payload.data, "동행자가 방금 수정함");
-      });
-    }).catch(function () {
+    switchToTrip(resolveInitialTripId()).catch(function () {
       setSyncNote("동기화 연결 실패 (로컬 저장만 됨)");
+    });
+
+    var panel = document.getElementById("tripSwitchPanel");
+    document.getElementById("tripSwitchBtn").addEventListener("click", function () {
+      var showing = panel.style.display !== "none";
+      panel.style.display = showing ? "none" : "block";
+      if (!showing) renderTripPicker();
+    });
+    document.getElementById("newTripBtn").addEventListener("click", function () {
+      var newId = "trip_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      switchToTrip(newId).then(function () {
+        panel.style.display = "none";
+        var titleInput = document.getElementById("heroTitle");
+        if (titleInput) { titleInput.focus(); titleInput.select(); }
+      });
     });
   }
 
