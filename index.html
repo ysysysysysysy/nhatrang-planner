@@ -117,11 +117,12 @@
     font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
+    font-size: 15px;
   }
   .mono { font-family: 'Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   h1, h2, h3 { text-wrap: balance; margin: 0; }
   button { font: inherit; color: inherit; touch-action: manipulation; }
-  input, textarea, select { font: inherit; color: inherit; font-size: 16px; touch-action: manipulation; }
+  input, textarea, select { font: inherit; color: inherit; font-size: 15px; touch-action: manipulation; }
   a { color: inherit; }
   ::selection { background: var(--primary-soft); }
   @media (prefers-reduced-motion: reduce) {
@@ -314,7 +315,7 @@
     border-radius: 50%; background: var(--primary-strong); border: 2px solid var(--surface);
   }
   .tl-head { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; }
-  .tl-time { width: 126px; flex-shrink: 0; font-size: 0.66rem; padding-left: 6px; padding-right: 4px; }
+  .tl-time { width: auto; min-width: 0; flex-shrink: 0; font-size: 0.66rem; padding-left: 6px; padding-right: 4px; }
   .tl-title { flex: 1 1 auto; min-width: 0; font-weight: 700; }
   .tl-head .reorder-btns { flex-shrink: 0; }
   .tl-head .reorder-btn { width: 22px; height: 16px; font-size: 0.55rem; }
