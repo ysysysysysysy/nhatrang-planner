@@ -229,6 +229,15 @@
   .panel { display: none; padding-top: 4px; }
   .panel.active { display: block; }
 
+  .scroll-top-btn {
+    position: fixed; right: 16px; bottom: calc(104px + env(safe-area-inset-bottom)); z-index: 40;
+    width: 44px; height: 44px; border-radius: 50%; border: none;
+    background: var(--primary); color: var(--on-primary-strong); box-shadow: var(--shadow);
+    font-size: 1.2rem; line-height: 1; cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+  }
+  .scroll-top-btn.visible { display: flex; }
+
   /* ---------- SECTION / CARD ---------- */
   .section-title { display: flex; align-items: baseline; gap: 10px; margin: var(--spacing-3xl) 0 var(--spacing-md); }
   .section-title:first-child { margin-top: 0; }
@@ -420,7 +429,7 @@
   .packing-cat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .packing-cat-head .text-input { flex: 1; font-weight: 700; }
   .packing-cat-empty { padding: 10px 0; font-size: 0.84rem; color: var(--ink-faint); }
-  .packing-cat-quickadd { display: flex; gap: 8px; margin-top: 10px; }
+  .packing-cat-quickadd { display: flex; gap: 8px; margin-top: 10px; margin-bottom: 4px; }
   .packing-cat-quickadd .text-input { flex: 1; }
 
   .place-item { padding: 14px 0; border-top: 1px solid var(--color-border); }
@@ -487,6 +496,8 @@
   .book-grid .full { grid-column: 1 / -1; }
   .book-sub { font-size: 0.78rem; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 0.03em; margin: 18px 0 10px; }
   .book-sub:first-child { margin-top: 0; }
+  .booking-entry { margin-bottom: 10px; }
+  .booking-entry-head { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 
   @media (max-width: 380px) {
     .book-grid { grid-template-columns: 1fr; }
@@ -540,8 +551,8 @@
 
     <div class="section-title"><h2>출발 전 예산</h2></div>
     <p class="hint" style="margin:-6px 0 12px;">항공·숙소 등 카테고리별로 예산을 세우고 예약이 끝나면 실지출을 채워보세요</p>
+    <button class="add-btn" id="addCategoryBtn" style="margin-bottom:10px;">+ 카테고리 추가</button>
     <div class="card" id="budgetCard"></div>
-    <button class="add-btn" id="addCategoryBtn" style="margin-top:10px;">+ 카테고리 추가</button>
 
   </section>
 
@@ -571,12 +582,12 @@
 
     <div class="section-title"><h2>여행 중 지출 기록</h2></div>
     <p class="hint" style="margin:-6px 0 12px;">산 물건과 금액을 그 자리에서 바로 기록해보세요. 동화(VND)로 적으면 원화로 자동 환산돼요</p>
+    <button class="add-btn" id="addExpenseBtn" style="margin-bottom:10px;">+ 지출 추가</button>
     <div class="day-row" id="expenseDayRow"></div>
     <div class="card" style="margin-top:12px;">
       <div class="expense-day-total mono" id="expenseDayTotal"></div>
       <div id="expenseList"></div>
     </div>
-    <button class="add-btn" id="addExpenseBtn" style="margin-top:10px;">+ 지출 추가</button>
 
     <div class="section-title"><h2>일자별 지출 그래프</h2></div>
     <div class="card">
@@ -599,65 +610,41 @@
     <div class="subpanel active" id="sub-prep">
       <div class="section-title"><h2>예약 · 수속 체크리스트</h2></div>
       <p class="hint" style="margin:-8px 0 12px;">이심, 패스트트랙, 보험처럼 출발 전에 미리 신청·예약해둘 일들</p>
-      <div class="card" id="todoCard"></div>
-      <div class="quick-add">
+      <div class="quick-add" style="margin-bottom:12px;">
         <input class="text-input" id="todoInput" placeholder="예: 이심 구매하기" maxlength="60">
         <button class="quick-add-btn" id="todoAddBtn">추가</button>
       </div>
+      <div class="card" id="todoCard"></div>
 
       <div class="section-title" style="margin-top:30px;"><h2>짐 꾸리기 체크리스트</h2></div>
       <p class="hint" style="margin:-8px 0 12px;">카테고리를 만들고, 그 안에 챙길 물건을 추가해보세요</p>
+      <button class="add-btn" id="addPackingCategoryBtn" style="margin-bottom:10px;">+ 카테고리 추가</button>
       <div id="packingCategories"></div>
-      <button class="add-btn" id="addPackingCategoryBtn" style="margin-top:10px;">+ 카테고리 추가</button>
     </div>
 
     <div class="subpanel" id="sub-shopping">
       <div class="section-title"><h2>쇼핑 목록</h2></div>
       <p class="hint" style="margin:-8px 0 12px;">사고 싶은 물건을 적어두고, 참고할 사진도 붙여보세요</p>
-      <div class="card" id="shoppingCard"></div>
-      <div class="quick-add">
+      <div class="quick-add" style="margin-bottom:12px;">
         <input class="text-input" id="shoppingInput" placeholder="예: 코코넛 오일" maxlength="60">
         <button class="quick-add-btn" id="shoppingAddBtn">추가</button>
       </div>
+      <div class="card" id="shoppingCard"></div>
     </div>
 
     <div class="subpanel" id="sub-places">
+      <button class="add-btn" id="addPlaceBtn" style="margin-bottom:10px;">+ 장소 추가</button>
       <div class="card" id="placesCard"></div>
-      <button class="add-btn" id="addPlaceBtn" style="margin-top:10px;">+ 장소 추가</button>
     </div>
 
     <div class="subpanel" id="sub-tips">
       <p class="hint" style="margin:-2px 0 12px;">카테고리를 만들고, 그 안에 꿀팁을 추가해보세요</p>
+      <button class="add-btn" id="addTipCategoryBtn" style="margin-bottom:10px;">+ 카테고리 추가</button>
       <div id="tipsCategories"></div>
-      <button class="add-btn" id="addTipCategoryBtn" style="margin-top:10px;">+ 카테고리 추가</button>
     </div>
 
     <div class="subpanel" id="sub-booking">
-      <div class="card">
-        <div class="book-sub">항공 — 가는편</div>
-        <div class="book-grid">
-          <div><label class="field-label">항공사/편명</label><input class="text-input" id="bk-out-flight"></div>
-          <div><label class="field-label">날짜</label><input type="date" class="text-input" id="bk-out-date"></div>
-          <div><label class="field-label">출발 시간 / 공항</label><input class="text-input" id="bk-out-dep"></div>
-          <div><label class="field-label">도착 시간 / 공항</label><input class="text-input" id="bk-out-arr"></div>
-        </div>
-        <div class="book-sub">항공 — 오는편</div>
-        <div class="book-grid">
-          <div><label class="field-label">항공사/편명</label><input class="text-input" id="bk-in-flight"></div>
-          <div><label class="field-label">날짜</label><input type="date" class="text-input" id="bk-in-date"></div>
-          <div><label class="field-label">출발 시간 / 공항</label><input class="text-input" id="bk-in-dep"></div>
-          <div><label class="field-label">도착 시간 / 공항</label><input class="text-input" id="bk-in-arr"></div>
-        </div>
-        <div class="book-sub">숙소</div>
-        <div class="book-grid">
-          <div class="full"><label class="field-label">숙소명</label><input class="text-input" id="bk-hotel-name"></div>
-          <div><label class="field-label">체크인</label><input type="date" class="text-input" id="bk-hotel-in"></div>
-          <div><label class="field-label">체크아웃</label><input type="date" class="text-input" id="bk-hotel-out"></div>
-          <div><label class="field-label">예약번호</label><input class="text-input" id="bk-hotel-conf"></div>
-          <div><label class="field-label">연락처</label><input class="text-input" id="bk-hotel-phone"></div>
-          <div class="full"><label class="field-label">주소</label><input class="text-input" id="bk-hotel-addr"></div>
-        </div>
-      </div>
+      <div id="bookingCategories"></div>
     </div>
 
     <div class="subpanel" id="sub-saved">
@@ -705,6 +692,8 @@
   <div class="lightbox-count mono" id="lightboxCount"></div>
 </div>
 
+<button type="button" class="scroll-top-btn" id="scrollTopBtn" aria-label="맨 위로">↑</button>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -726,6 +715,39 @@ var firebaseConfig = {
 
   var STORAGE_KEY = "nhatrang-planner-v2";
   var MAX_PHOTOS = 5;
+  var BOOKING_CATEGORIES = ["항공", "숙소", "식당", "기타"];
+  var BOOKING_TEMPLATES = {
+    "항공": [
+      { key: "label", label: "구분", placeholder: "예: 가는편" },
+      { key: "flight", label: "항공사/편명" },
+      { key: "date", label: "날짜", type: "date" },
+      { key: "dep", label: "출발 시간/공항" },
+      { key: "arr", label: "도착 시간/공항" }
+    ],
+    "숙소": [
+      { key: "name", label: "숙소명", full: true },
+      { key: "checkin", label: "체크인", type: "date" },
+      { key: "checkout", label: "체크아웃", type: "date" },
+      { key: "confirm", label: "예약번호" },
+      { key: "phone", label: "연락처" },
+      { key: "address", label: "주소", full: true }
+    ],
+    "식당": [
+      { key: "name", label: "식당명", full: true },
+      { key: "date", label: "예약 날짜", type: "date" },
+      { key: "time", label: "예약 시간" },
+      { key: "people", label: "인원" },
+      { key: "phone", label: "연락처" },
+      { key: "memo", label: "메모", full: true }
+    ],
+    "기타": [
+      { key: "title", label: "제목", full: true },
+      { key: "date", label: "날짜", type: "date" },
+      { key: "time", label: "시간" },
+      { key: "phone", label: "연락처" },
+      { key: "memo", label: "메모", full: true }
+    ]
+  };
 
   function defaultTripStart() {
     var d = new Date();
@@ -861,11 +883,7 @@ var firebaseConfig = {
             .map(function (t) { return { text: t, photos: [] }; })
         }
       ],
-      booking: {
-        outFlight: "", outDate: "", outDep: "", outArr: "",
-        inFlight: "", inDate: "", inDep: "", inArr: "",
-        hotelName: "", hotelIn: "", hotelOut: "", hotelConf: "", hotelPhone: "", hotelAddr: ""
-      },
+      booking: [],
       googleMapsListUrl: "",
       shopping: []
     };
@@ -932,6 +950,27 @@ var firebaseConfig = {
       var photos = Array.isArray(p.photos) ? p.photos : (p.photo ? [p.photo] : []);
       p.photos = photos.slice(0, MAX_PHOTOS);
       delete p.photo;
+    });
+    if (!Array.isArray(parsed.booking)) {
+      var oldB = parsed.booking || {};
+      var migrated = [];
+      if (oldB.outFlight || oldB.outDate || oldB.outDep || oldB.outArr) {
+        migrated.push({ category: "항공", fields: { label: "가는편", flight: oldB.outFlight || "", date: oldB.outDate || "", dep: oldB.outDep || "", arr: oldB.outArr || "" } });
+      }
+      if (oldB.inFlight || oldB.inDate || oldB.inDep || oldB.inArr) {
+        migrated.push({ category: "항공", fields: { label: "오는편", flight: oldB.inFlight || "", date: oldB.inDate || "", dep: oldB.inDep || "", arr: oldB.inArr || "" } });
+      }
+      if (oldB.hotelName || oldB.hotelIn || oldB.hotelOut || oldB.hotelConf || oldB.hotelPhone || oldB.hotelAddr) {
+        migrated.push({ category: "숙소", fields: { name: oldB.hotelName || "", checkin: oldB.hotelIn || "", checkout: oldB.hotelOut || "", confirm: oldB.hotelConf || "", phone: oldB.hotelPhone || "", address: oldB.hotelAddr || "" } });
+      }
+      parsed.booking = migrated;
+    }
+    parsed.booking.forEach(function (b) {
+      if (!BOOKING_TEMPLATES[b.category]) b.category = "기타";
+      if (!b.fields || typeof b.fields !== "object") b.fields = {};
+      BOOKING_TEMPLATES[b.category].forEach(function (f) {
+        if (typeof b.fields[f.key] !== "string") b.fields[f.key] = "";
+      });
     });
     return parsed;
   }
@@ -1210,22 +1249,48 @@ var firebaseConfig = {
   }
 
   /* ---------------- TABS ---------------- */
+  var UI_TAB_KEY = "nhatrang-planner-active-tab";
+  var UI_SUBTAB_KEY = "nhatrang-planner-active-subtab";
+
+  function activateTab(tabName) {
+    document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.toggle("active", b.dataset.tab === tabName); });
+    document.querySelectorAll(".panel").forEach(function (p) { p.classList.toggle("active", p.id === "panel-" + tabName); });
+  }
+  function activateSubtab(subName) {
+    document.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b.dataset.sub === subName); });
+    document.querySelectorAll(".subpanel").forEach(function (p) { p.classList.toggle("active", p.id === "sub-" + subName); });
+  }
+
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
-      document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("active"); });
-      btn.classList.add("active");
-      document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+      activateTab(btn.dataset.tab);
+      try { localStorage.setItem(UI_TAB_KEY, btn.dataset.tab); } catch (e) {}
     });
   });
 
   document.querySelectorAll(".subtab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      document.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.remove("active"); });
-      document.querySelectorAll(".subpanel").forEach(function (p) { p.classList.remove("active"); });
-      btn.classList.add("active");
-      document.getElementById("sub-" + btn.dataset.sub).classList.add("active");
+      activateSubtab(btn.dataset.sub);
+      try { localStorage.setItem(UI_SUBTAB_KEY, btn.dataset.sub); } catch (e) {}
     });
+  });
+
+  (function restoreLastTab() {
+    try {
+      var savedTab = localStorage.getItem(UI_TAB_KEY);
+      if (savedTab && document.getElementById("panel-" + savedTab)) activateTab(savedTab);
+      var savedSub = localStorage.getItem(UI_SUBTAB_KEY);
+      if (savedSub && document.getElementById("sub-" + savedSub)) activateSubtab(savedSub);
+    } catch (e) {}
+  })();
+
+  /* ---------------- SCROLL TO TOP ---------------- */
+  var scrollTopBtn = document.getElementById("scrollTopBtn");
+  window.addEventListener("scroll", function () {
+    scrollTopBtn.classList.toggle("visible", window.scrollY > 400);
+  }, { passive: true });
+  scrollTopBtn.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
   /* ---------------- HERO / D-DAY ---------------- */
@@ -1369,6 +1434,7 @@ var firebaseConfig = {
     var wrap = document.getElementById("dayContent");
     var day = state.days[state.activeDay];
     var html = '<div class="section-title"><h2>DAY ' + (state.activeDay + 1) + ' · ' + escapeHtml(day.label) + '</h2></div>';
+    html += '<button class="add-btn" id="addItemBtn" style="margin-bottom:12px;">+ 일정 추가</button>';
     html += '<div class="card"><div class="timeline">';
     html += day.items.map(function (item, i) {
       return '<div class="tl-item" data-i="' + i + '">' +
@@ -1382,7 +1448,7 @@ var firebaseConfig = {
         '</div>';
     }).join("");
     html += '</div></div>';
-    wrap.innerHTML = html + '<button class="add-btn" id="addItemBtn" style="margin-top:12px;">+ 일정 추가</button>';
+    wrap.innerHTML = html;
 
     wrap.querySelectorAll(".tl-item").forEach(function (el) {
       var i = Number(el.dataset.i);
@@ -1403,6 +1469,13 @@ var firebaseConfig = {
       day.items.push({ time: "12:00", title: "", memo: "" });
       save();
       renderDayContent();
+      var items = wrap.querySelectorAll(".tl-item");
+      var newEl = items[items.length - 1];
+      if (newEl) {
+        newEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        var titleInput = newEl.querySelector(".tl-title");
+        if (titleInput) titleInput.focus();
+      }
     });
   }
 
@@ -1707,7 +1780,11 @@ var firebaseConfig = {
     renderExpenseList();
     renderDayChart();
     var items = document.querySelectorAll("#expenseList .exp-item");
-    if (items.length) items[items.length - 1].focus();
+    var newEl = items[items.length - 1];
+    if (newEl) {
+      newEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      newEl.focus();
+    }
   });
 
   function renderDayChart() {
@@ -1808,11 +1885,11 @@ var firebaseConfig = {
         reorderBtnsHtml(ci, state.packing.length, "cat-") +
         '<button class="icon-btn" data-del-cat="' + ci + '" aria-label="카테고리 삭제">✕</button>' +
         '</div>' +
-        '<div class="packing-cat-items">' + itemsHtml + '</div>' +
         '<div class="packing-cat-quickadd">' +
         '<input class="text-input" data-cat-input="' + ci + '" placeholder="예: 보조배터리" maxlength="60">' +
         '<button class="quick-add-btn" data-cat-add="' + ci + '">추가</button>' +
         '</div>' +
+        '<div class="packing-cat-items">' + itemsHtml + '</div>' +
         '</div>';
     }).join("") || '<p class="hint" style="margin:0;">아직 카테고리가 없어요. 아래에서 만들어보세요.</p>';
 
@@ -1851,7 +1928,7 @@ var firebaseConfig = {
       function commitItem() {
         var v = addInput.value.trim();
         if (!v) { addInput.focus(); return; }
-        cat.items.push({ label: v, checked: false });
+        cat.items.unshift({ label: v, checked: false });
         save();
         renderPacking();
         var refocus = wrap.querySelector('.packing-cat[data-ci="' + ci + '"] [data-cat-input]');
@@ -1877,7 +1954,7 @@ var firebaseConfig = {
     function commit() {
       var v = input.value.trim();
       if (!v) { input.focus(); return; }
-      state[listKey].push({ label: v, checked: false });
+      state[listKey].unshift({ label: v, checked: false });
       input.value = "";
       save();
       renderFn();
@@ -2082,8 +2159,8 @@ var firebaseConfig = {
         reorderBtnsHtml(ci, state.tips.length, "cat-") +
         '<button class="icon-btn" data-del-cat="' + ci + '" aria-label="카테고리 삭제">✕</button>' +
         '</div>' +
+        '<button type="button" class="add-btn" data-cat-addtip="' + ci + '" style="margin:10px 0;">+ 꿀팁 추가</button>' +
         itemsHtml +
-        '<button type="button" class="add-btn" data-cat-addtip="' + ci + '" style="margin-top:10px;">+ 꿀팁 추가</button>' +
         '</div>';
     }).join("") || '<p class="hint" style="margin:0;">아직 카테고리가 없어요. 아래에서 만들어보세요.</p>';
 
@@ -2102,11 +2179,11 @@ var firebaseConfig = {
         renderTips();
       });
       catEl.querySelector("[data-cat-addtip]").addEventListener("click", function () {
-        cat.items.push({ text: "", photos: [] });
+        cat.items.unshift({ text: "", photos: [] });
         save();
         renderTips();
         var textareas = wrap.querySelectorAll('.packing-cat[data-ci="' + ci + '"] .tip-item .textarea');
-        var last = textareas[textareas.length - 1];
+        var last = textareas[0];
         if (last) last.focus();
       });
 
@@ -2173,21 +2250,55 @@ var firebaseConfig = {
   wireQuickAdd("shoppingInput", "shoppingAddBtn", "shopping", renderShopping);
 
   /* ---------------- BOOKING ---------------- */
-  var bookingFields = {
-    "bk-out-flight": "outFlight", "bk-out-date": "outDate", "bk-out-dep": "outDep", "bk-out-arr": "outArr",
-    "bk-in-flight": "inFlight", "bk-in-date": "inDate", "bk-in-dep": "inDep", "bk-in-arr": "inArr",
-    "bk-hotel-name": "hotelName", "bk-hotel-in": "hotelIn", "bk-hotel-out": "hotelOut",
-    "bk-hotel-conf": "hotelConf", "bk-hotel-phone": "hotelPhone", "bk-hotel-addr": "hotelAddr"
-  };
-  Object.keys(bookingFields).forEach(function (id) {
-    var key = bookingFields[id];
-    var el = document.getElementById(id);
-    el.value = state.booking[key] || "";
-    el.addEventListener("input", function () {
-      state.booking[key] = el.value;
-      save();
+  function renderBooking() {
+    var wrap = document.getElementById("bookingCategories");
+    wrap.innerHTML = BOOKING_CATEGORIES.map(function (cat) {
+      var fieldsDef = BOOKING_TEMPLATES[cat];
+      var entries = [];
+      state.booking.forEach(function (b, i) { if (b.category === cat) entries.push(i); });
+      var entriesHtml = entries.length
+        ? entries.map(function (i) {
+            var b = state.booking[i];
+            var fieldsHtml = fieldsDef.map(function (f) {
+              return '<div' + (f.full ? ' class="full"' : '') + '><label class="field-label">' + f.label + '</label>' +
+                '<input type="' + (f.type || "text") + '" class="text-input" data-booking-field="' + f.key + '" placeholder="' + (f.placeholder || "") + '" value="' + escapeHtml(b.fields[f.key]) + '"></div>';
+            }).join("");
+            return '<div class="card booking-entry" data-bi="' + i + '">' +
+              '<div class="booking-entry-head"><button class="icon-btn" data-booking-del="' + i + '" aria-label="삭제">✕</button></div>' +
+              '<div class="book-grid">' + fieldsHtml + '</div>' +
+              '</div>';
+          }).join("")
+        : '<p class="hint" style="margin:0 0 12px;">아직 추가된 ' + cat + ' 정보가 없어요.</p>';
+      return '<div class="section-title" style="margin-top:26px;"><h2>' + cat + '</h2></div>' +
+        '<button type="button" class="add-btn" data-booking-add="' + cat + '" style="margin-bottom:10px;">+ ' + cat + ' 추가</button>' +
+        entriesHtml;
+    }).join("");
+
+    wrap.querySelectorAll("[data-booking-add]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var cat = btn.getAttribute("data-booking-add");
+        var fields = {};
+        BOOKING_TEMPLATES[cat].forEach(function (f) { fields[f.key] = ""; });
+        state.booking.unshift({ category: cat, fields: fields });
+        save();
+        renderBooking();
+      });
     });
-  });
+    wrap.querySelectorAll(".booking-entry").forEach(function (el) {
+      var i = Number(el.dataset.bi);
+      el.querySelectorAll("[data-booking-field]").forEach(function (input) {
+        input.addEventListener("input", function () {
+          state.booking[i].fields[input.getAttribute("data-booking-field")] = input.value;
+          save();
+        });
+      });
+      el.querySelector("[data-booking-del]").addEventListener("click", function () {
+        state.booking.splice(i, 1);
+        save();
+        renderBooking();
+      });
+    });
+  }
 
   function renderGoogleMapsListUrl() {
     var url = state.googleMapsListUrl || "";
@@ -2238,10 +2349,8 @@ var firebaseConfig = {
     renderPlaces();
     renderTips();
     renderGoogleMapsListUrl();
+    renderBooking();
     fxRate.value = state.fxRate;
-    Object.keys(bookingFields).forEach(function (id) {
-      document.getElementById(id).value = state.booking[bookingFields[id]] || "";
-    });
   }
 
   renderAll();
