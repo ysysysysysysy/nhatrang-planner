@@ -569,13 +569,11 @@
 
     <div class="section-title"><h2>환율 계산기</h2></div>
     <div class="card fx-card">
-      <div class="fx-rate-row" style="flex-wrap:wrap;">
-        <select class="text-input" id="localCurrencySelect" style="width:auto; min-width:110px;"></select>
-        <input type="text" class="text-input" id="localCurrencyCustom" maxlength="4" style="width:70px; text-transform:uppercase; display:none;" placeholder="코드">
-        <span style="color:var(--ink-faint);">·</span>
+      <div class="fx-rate-row">
         <span>1 KRW =</span>
-        <input type="number" class="num-input" id="fxRate" step="0.01" style="width:90px;">
-        <span id="fxRateUnit">VND</span>
+        <input type="number" class="num-input" id="fxRate" step="0.01" style="width:72px;">
+        <select class="text-input" id="localCurrencySelect" style="width:auto; min-width:60px;"></select>
+        <input type="text" class="text-input" id="localCurrencyCustom" maxlength="4" style="width:56px; text-transform:uppercase; display:none;" placeholder="코드">
       </div>
       <p class="hint" style="margin-top:-2px;">목록에 없는 통화는 "기타"를 선택해 직접 입력하세요. 환율은 직접 입력해 최신값으로 맞춰두면 아래 지출 기록에도 바로 반영돼요</p>
       <div class="fx-conv-row">
@@ -1696,8 +1694,7 @@ var firebaseConfig = {
     return amount;
   }
   function dayTotal(i) {
-    var total = state.days[i].expenses.reduce(function (s, e) { return s + toKRW(e.amount, e.currency); }, 0);
-    return Math.ceil(total);
+    return state.days[i].expenses.reduce(function (s, e) { return s + Math.ceil(toKRW(e.amount, e.currency)); }, 0);
   }
 
   function selectBudgetDay(i) {
@@ -1869,12 +1866,11 @@ var firebaseConfig = {
   var localCurrencySelect = document.getElementById("localCurrencySelect");
   var localCurrencyCustom = document.getElementById("localCurrencyCustom");
   localCurrencySelect.innerHTML = CURRENCY_ORDER.map(function (code) {
-    return '<option value="' + code + '">' + code + ' (' + CURRENCY_PRESETS[code].label + ')</option>';
-  }).join("") + '<option value="OTHER">기타 (직접 입력)</option>';
+    return '<option value="' + code + '">' + code + '</option>';
+  }).join("") + '<option value="OTHER">기타</option>';
 
   function renderCurrencyLabels() {
     var info = currencyInfo();
-    document.getElementById("fxRateUnit").textContent = info.code;
     document.getElementById("fxLocalLabel").textContent = info.label + " (" + info.code + ")";
     var isKnown = CURRENCY_ORDER.indexOf(info.code) !== -1;
     localCurrencySelect.value = isKnown ? info.code : "OTHER";
@@ -2041,7 +2037,11 @@ var firebaseConfig = {
     renderPacking();
     var inputs = document.querySelectorAll('.packing-cat-head [data-field="category"]');
     var last = inputs[inputs.length - 1];
-    if (last) { last.focus(); last.select(); }
+    if (last) {
+      last.closest(".packing-cat").scrollIntoView({ behavior: "smooth", block: "center" });
+      last.focus();
+      last.select();
+    }
   });
 
   function wireQuickAdd(inputId, btnId, listKey, renderFn) {
@@ -2306,7 +2306,11 @@ var firebaseConfig = {
     renderTips();
     var inputs = document.querySelectorAll('#tipsCategories .packing-cat-head [data-field="category"]');
     var last = inputs[inputs.length - 1];
-    if (last) { last.focus(); last.select(); }
+    if (last) {
+      last.closest(".packing-cat").scrollIntoView({ behavior: "smooth", block: "center" });
+      last.focus();
+      last.select();
+    }
   });
 
   /* ---------------- SHOPPING LIST ---------------- */
