@@ -1696,6 +1696,13 @@ var firebaseConfig = {
   function dayTotal(i) {
     return state.days[i].expenses.reduce(function (s, e) { return s + Math.ceil(toKRW(e.amount, e.currency)); }, 0);
   }
+  function dayLocalTotal(i) {
+    var rate = Number(state.fxRate) || 0;
+    return state.days[i].expenses.reduce(function (s, e) {
+      if (e.currency === "LOCAL") return s + (Number(e.amount) || 0);
+      return s + Math.ceil((Number(e.amount) || 0) * rate);
+    }, 0);
+  }
 
   function selectBudgetDay(i) {
     state.activeBudgetDay = i;
@@ -1722,7 +1729,7 @@ var firebaseConfig = {
     var rate = Number(state.fxRate) || 0;
     var info = currencyInfo();
     var localEquivHtml = rate > 0
-      ? '<div class="exp-total-sub hint">≈ ' + fmt(Math.ceil(total * rate)) + info.symbol + '</div>'
+      ? '<div class="exp-total-sub hint">≈ ' + fmt(dayLocalTotal(state.activeBudgetDay)) + info.symbol + '</div>'
       : '';
     document.getElementById("expenseDayTotal").innerHTML =
       '<span class="hint">DAY ' + (state.activeBudgetDay + 1) + ' 지출 합계</span>' +
@@ -2035,7 +2042,7 @@ var firebaseConfig = {
     state.packing.push({ category: "새 카테고리", items: [] });
     save();
     renderPacking();
-    var inputs = document.querySelectorAll('.packing-cat-head [data-field="category"]');
+    var inputs = document.querySelectorAll('#packingCategories .packing-cat-head [data-field="category"]');
     var last = inputs[inputs.length - 1];
     if (last) {
       last.closest(".packing-cat").scrollIntoView({ behavior: "smooth", block: "center" });
