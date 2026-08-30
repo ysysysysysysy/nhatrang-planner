@@ -432,6 +432,12 @@
   .check-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary-strong); flex-shrink: 0; }
   .check-item .clabel { flex: 1; font-size: 0.92rem; }
   .check-item.checked .clabel { text-decoration: line-through; color: var(--ink-faint); }
+  input.clabel {
+    border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent;
+    padding: 4px; min-height: auto; color: var(--ink);
+  }
+  input.clabel:hover { border-color: var(--color-border); }
+  input.clabel:focus { outline: none; border-color: var(--primary-strong); background: var(--surface); }
 
   .packing-cat { margin-bottom: var(--spacing-md); }
   .packing-cat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -1936,7 +1942,7 @@ var firebaseConfig = {
     card.innerHTML = list.map(function (p, i) {
       return '<div class="check-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
         '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
-        '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+        '<input class="clabel" data-field="label" value="' + escapeHtml(p.label) + '">' +
         reorderBtnsHtml(i, list.length) +
         '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
         '</div>';
@@ -1946,6 +1952,10 @@ var firebaseConfig = {
       el.querySelector("input[type=checkbox]").addEventListener("change", function (e) {
         list[i].checked = e.target.checked;
         el.classList.toggle("checked", e.target.checked);
+        save();
+      });
+      el.querySelector('[data-field="label"]').addEventListener("input", function (e) {
+        list[i].label = e.target.value;
         save();
       });
       el.querySelector("[data-del]").addEventListener("click", function () {
@@ -1972,7 +1982,7 @@ var firebaseConfig = {
         ? cat.items.map(function (p, i) {
             return '<div class="check-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
               '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
-              '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+              '<input class="clabel" data-field="label" value="' + escapeHtml(p.label) + '">' +
               reorderBtnsHtml(i, cat.items.length, "item-") +
               '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
               '</div>';
@@ -2012,6 +2022,10 @@ var firebaseConfig = {
         el.querySelector("input[type=checkbox]").addEventListener("change", function (e) {
           cat.items[i].checked = e.target.checked;
           el.classList.toggle("checked", e.target.checked);
+          save();
+        });
+        el.querySelector('[data-field="label"]').addEventListener("input", function (e) {
+          cat.items[i].label = e.target.value;
           save();
         });
         el.querySelector("[data-del]").addEventListener("click", function () {
@@ -2330,7 +2344,7 @@ var firebaseConfig = {
         return '<div class="shopping-item' + (p.checked ? " checked" : "") + '" data-i="' + i + '">' +
           '<div class="shopping-item-row">' +
           '<input type="checkbox" ' + (p.checked ? "checked" : "") + '>' +
-          '<span class="clabel">' + escapeHtml(p.label) + '</span>' +
+          '<input class="clabel" data-field="label" value="' + escapeHtml(p.label) + '">' +
           reorderBtnsHtml(i, state.shopping.length) +
           '<button class="icon-btn" data-del="' + i + '" aria-label="삭제">✕</button>' +
           '</div>' +
@@ -2343,6 +2357,10 @@ var firebaseConfig = {
       el.querySelector("input[type=checkbox]").addEventListener("change", function (e) {
         state.shopping[i].checked = e.target.checked;
         el.classList.toggle("checked", e.target.checked);
+        save();
+      });
+      el.querySelector('[data-field="label"]').addEventListener("input", function (e) {
+        state.shopping[i].label = e.target.value;
         save();
       });
       el.querySelector("[data-del]").addEventListener("click", function () {
